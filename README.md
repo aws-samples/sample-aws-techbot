@@ -6,7 +6,7 @@
 
 ## 适用场景
 
-- **技术团队内部助手** — 在飞书群中 @机器人 即可查询 AWS 服务文档、最佳实践和架构指导，减少重复查阅文档的时间
+- **快速定位文档** — 在飞书群中 @机器人 即可查询 AWS 服务文档、最佳实践和架构指导，减少重复查阅文档的时间
 - **配置方法与教程查询** — 查询 AWS 服务的配置步骤、操作教程和示例代码，降低上手门槛
 - **成本估算** — 实时查询 AWS 全球和中国区域的服务定价，辅助架构选型和成本优化决策
 - **故障排查与运维支持** — 快速检索 AWS 服务的故障排查指南、配额限制、错误码说明和运维 SOP，缩短问题定位和恢复时间
@@ -17,15 +17,15 @@
 
 ```
 AgentCore Runtime (Docker 容器)
-  │
-  └── Agent (Bedrock 模型) → MCPClient
-                                │
+        │
+        └── Agent (Bedrock 模型) → MCPClient
+                                     │
                           AgentCore Gateway (MCP endpoint + Cognito 认证)
-                                │
-                    ┌───────────┼───────────┐───────────┐
-                    │           │           │           │
+                                     │
+                    ┌────────────────┼─────────────┐────────────┐
+                    │                │             │            │
               Global Knowledge  China Knowledge  Pricing  Customer Stories
-                (Lambda)        (Lambda)       (Lambda)    (Lambda)
+                (Lambda)          (Lambda)       (Lambda)    (Lambda)
 ```
 
 ## 部署
@@ -81,3 +81,4 @@ AgentCore Runtime (Docker 容器)
 > 详细图文步骤请参考 [飞书机器人配置手册](docs/feishu-setup-zh.md)（第五步 ~ 第八步）
 
 ### 🎉🎉🎉 完成
+> 详细功能说明和使用示例请参考 [使用教程](docs/usage-guide-zh.md)
