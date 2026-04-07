@@ -1,0 +1,5 @@
+fastmcp>=2.0.0
+mcp>=1.0.0
+run-mcp-servers-with-aws-lambda
+anyio>=4.0.0
+aws-lambda-powertools>=2.0.0

@@ -1,0 +1,5 @@
+mcp>=1.0.0
+run-mcp-servers-with-aws-lambda
+awslabs.aws-pricing-mcp-server>=0.1.0
+aws-lambda-powertools>=2.0.0
+fastmcp>=2.0.0

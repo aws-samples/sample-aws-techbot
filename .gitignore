@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Runtime
+.venv/
+.env
+
+# Node (if any)
+node_modules/
+
+# Old skill-based code (replaced by Gateway targets)
+skill_tool.py
+skills/
+
+# Lock file
+uv.lock
+
+# Layer zips
+*.zip
+
+# macOS
+.DS_Store
