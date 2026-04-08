@@ -74,7 +74,7 @@ Bot：Lambda 函数的最大内存为 10,240 MB（10 GB）...
 - 可以点击下图所示的按钮在详情页中进行回复
 <img src="images/zh/09-memory-3.png" width="500" alt="使用方式">
 
-## 图片识别（注意：仅 Nova Pro 和 Kimi K2.5 模型支持图片输入）
+## 图片识别（注意：仅 Nova Pro 模型支持图片输入）
 
 TechBot 支持图片输入。你可以发送截图让 TechBot 帮你分析：
 
