@@ -1,5 +1,12 @@
 # AWS TechBot
 
+[![License: MIT-0](https://img.shields.io/badge/License-MIT--0-yellow.svg)](LICENSE)
+[![IaC: CloudFormation](https://img.shields.io/badge/IaC-CloudFormation-orange.svg)](deploy/template.yaml)
+[![Powered by AgentCore](https://img.shields.io/badge/Powered%20by-Amazon%20Bedrock%20AgentCore-blue.svg)](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/)
+[![Built with Strands](https://img.shields.io/badge/Built%20with-Strands%20Agents-green.svg)](https://github.com/strands-agents/sdk-python)
+
+[English](README_EN.md) | 简体中文
+
 基于 [Strands Agents SDK](https://github.com/strands-agents/sdk-python) 和 [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/) 构建的 AI AWS 技术助手。
 
 通过 AgentCore Gateway 统一管理工具接入，Agent 启动时自动从 Gateway 发现所有可用工具。
