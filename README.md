@@ -11,23 +11,6 @@
 - **成本估算** — 实时查询 AWS 全球和中国区域的服务定价，辅助架构选型和成本优化决策
 - **故障排查与运维支持** — 快速检索 AWS 服务的故障排查指南、配额限制、错误码说明和运维 SOP，缩短问题定位和恢复时间
 
-> 详细功能说明和使用示例请参考 [使用教程](docs/usage-guide-zh.md)
-
-## 架构
-
-```
-AgentCore Runtime (Docker 容器)
-        │
-        └── Agent (Bedrock 模型) → MCPClient
-                                     │
-                          AgentCore Gateway (MCP endpoint + Cognito 认证)
-                                     │
-                    ┌────────────────┼─────────────┐────────────┐
-                    │                │             │            │
-              Global Knowledge  China Knowledge  Pricing  Customer Stories
-                (Lambda)          (Lambda)       (Lambda)    (Lambda)
-```
-
 ## 部署
 
 ### 前置步骤：创建飞书应用
@@ -82,3 +65,62 @@ AgentCore Runtime (Docker 容器)
 
 ### 🎉🎉🎉 完成
 > 详细功能说明和使用示例请参考 [使用教程](docs/usage-guide-zh.md)
+
+## 架构
+
+```
+AgentCore Runtime (Docker 容器)
+        │
+        └── Agent (Bedrock 模型) → MCPClient
+                                     │
+                          AgentCore Gateway (MCP endpoint + Cognito 认证)
+                                     │
+                    ┌────────────────┼─────────────┐────────────┐
+                    │                │             │            │
+              Global Knowledge  China Knowledge  Pricing  Customer Stories
+                (Lambda)          (Lambda)       (Lambda)    (Lambda)
+```
+
+## 模型定价
+
+| 模型 | 输入 (per 1M tokens) | 输出 (per 1M tokens) | 图片输入 |
+|------|---------------------|---------------------|---------|
+| Amazon Nova Pro | $0.80 | $3.20 | ✅ |
+| MiniMax M2.5 | $0.30 | $1.20 | ❌ |
+| DeepSeek V3.2 | $0.62 | $1.85 | ❌ |
+| GLM-5 (Zhipu AI) | $1.00 | $3.20 | ❌ |
+
+## 成本估算
+
+基于实际测试（文档查询、定价查询、中国区服务查询、客户案例搜索），平均每次对话约 **39K input tokens + 600 output tokens**，**4 次工具调用**。以下按 **300 问题/月（约 10 次/天）** 估算。
+
+**模型调用费用**
+
+| 模型 | 每次调用 | 月费用 (300 次) |
+|------|---------|---------------|
+| MiniMax M2.5 | ~$0.002 | ~$0.5 |
+| DeepSeek V3.2 | ~$0.003 | ~$1.0 |
+| Nova Pro | ~$0.005 | ~$1.5 |
+| GLM-5 | ~$0.006 | ~$2.0 |
+
+**AgentCore 基础设施费用**
+
+每个问题调用 1 次 Runtime，平均触发 ~5 次 Gateway API 调用。
+
+| 服务 | 说明 | 月费用 |
+|------|------|--------|
+| Runtime | CPU + Memory，按实际消耗计费 | < $3 |
+| Gateway | 平均每问题 ~5 次 API 调用 | < $0.01 |
+| Memory（可选） | 多轮对话记忆 | < $0.5 |
+| Lambda / API Gateway | | 免费额度内 |
+
+**月度总费用**
+
+| 模型 | 模型调用 | 基础设施 | 合计 |
+|------|---------|---------|------|
+| MiniMax M2.5 | ~$0.5 | < $4 | **< $5** |
+| DeepSeek V3.2 | ~$1.0 | < $4 | **< $5** |
+| Nova Pro | ~$1.5 | < $4 | **< $6** |
+| GLM-5 | ~$2.0 | < $4 | **< $6** |
+
+> AgentCore 按实际消耗计费，无预付费用。实际费用因问题复杂度（工具调用次数、响应时间）和 Memory 开关而异。仅 Nova Pro 支持图片输入。
