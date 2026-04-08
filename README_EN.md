@@ -137,6 +137,10 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 
 > **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova Pro supports image input.
 
+## Disclaimer
+
+This is sample code for demonstration purposes only. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before deployment. Deploying this solution may incur AWS charges.
+
 ## Security
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.

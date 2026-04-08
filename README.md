@@ -135,6 +135,10 @@ AgentCore Runtime (Docker 容器)
 
 > **几乎所有服务均按需计费，不提问时不产生费用。** 实际费用因问题复杂度（工具调用次数、响应时间）和 Memory 开关而异。仅 Nova Pro 支持图片输入。
 
+## Disclaimer
+
+This is sample code for demonstration purposes only. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before deployment. Deploying this solution may incur AWS charges.
+
 ## Security
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
