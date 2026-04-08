@@ -134,3 +134,11 @@ AgentCore Runtime (Docker 容器)
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
 > **几乎所有服务均按需计费，不提问时不产生费用。** 实际费用因问题复杂度（工具调用次数、响应时间）和 Memory 开关而异。仅 Nova Pro 支持图片输入。
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This project is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.

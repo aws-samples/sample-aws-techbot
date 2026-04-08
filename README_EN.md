@@ -136,3 +136,11 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
 > **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova Pro supports image input.
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This project is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
