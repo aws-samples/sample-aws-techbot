@@ -28,7 +28,8 @@
 2. 进入 **凭证与基础信息**，复制 **App ID** 和 **App Secret**
 3. 启用 **机器人** 能力
 4. 配置权限
-> 详细图文步骤请参考 [飞书机器人配置手册](docs/feishu-setup-zh.md)（第一步 ~ 第四步）
+5. 复制验证码
+> 详细图文步骤请参考 [飞书机器人配置手册](docs/feishu-setup-zh.md)（第一步 ~ 第五步）
 
 ### 一键部署 CloudFormation
 
@@ -54,6 +55,7 @@
 | Memory Expiry Days | 已预填 | 记忆过期天数（7-365） |
 | Feishu App ID | **必填** | 飞书应用凭证 |
 | Feishu App Secret | **必填** | 飞书应用凭证 |
+| Feishu Verification Token | **必填** | 飞书 Webhook 验证令牌（开放平台 → 事件与回调 → 加密策略） |
 
 其余选项（Tags、Permissions、Stack failure options 等）保持默认即可，无需修改。
 页面底部勾选 **✅ I acknowledge that AWS CloudFormation might create IAM resources with custom names**
@@ -68,7 +70,7 @@
 3. **发布应用** — 创建版本并提交审批
 4. **添加到群聊** — 将机器人添加到飞书群
 
-> 详细图文步骤请参考 [飞书机器人配置手册](docs/feishu-setup-zh.md)（第五步 ~ 第八步）
+> 详细图文步骤请参考 [飞书机器人配置手册](docs/feishu-setup-zh.md)（第六步 ~ 第九步）
 
 ### 🎉🎉🎉 完成
 > 详细功能说明和使用示例请参考 [使用教程](docs/usage-guide-zh.md)

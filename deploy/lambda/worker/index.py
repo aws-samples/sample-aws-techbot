@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 """TechBot Worker Lambda - processes Feishu message, calls AgentCore, patches card."""
 
 import os
@@ -15,15 +18,28 @@ FEISHU_MSG_RESOURCE_URL = "https://open.feishu.cn/open-apis/im/v1/messages/{mess
 
 AGENT_RUNTIME_ARN = os.environ.get("AGENT_RUNTIME_ARN", "")
 REGION = os.environ.get("AGENTCORE_REGION") or os.environ.get("AWS_REGION", "us-west-2")
+SECRET_ARN = os.environ.get("SECRET_ARN", "")
+
+# Cache Feishu credentials from Secrets Manager
+_feishu_creds = None
+
+def get_feishu_creds() -> dict:
+    global _feishu_creds
+    if not _feishu_creds:
+        sm = boto3.client("secretsmanager")
+        resp = sm.get_secret_value(SecretId=SECRET_ARN)
+        _feishu_creds = json.loads(resp["SecretString"])
+    return _feishu_creds
 
 
 # =========================
 # Feishu helpers
 # =========================
 def get_tenant_token() -> str:
+    creds = get_feishu_creds()
     res = requests.post(
         FEISHU_TOKEN_URL,
-        json={"app_id": os.environ["APP_ID"], "app_secret": os.environ["APP_SECRET"]},
+        json={"app_id": creds["APP_ID"], "app_secret": creds["APP_SECRET"]},
         timeout=5,
     )
     res.raise_for_status()

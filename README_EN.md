@@ -28,8 +28,9 @@ Before deploying, create an app on the Feishu Open Platform to get the App ID an
 2. Go to **Credentials & Basic Info**, copy **App ID** and **App Secret**
 3. Enable **Bot** capability
 4. Configure permissions
+5. Copy Verification Code
 
-> See the [Feishu Bot Setup Guide](docs/feishu-setup-zh.md) (Steps 1-4) for detailed instructions
+> See the [Feishu Bot Setup Guide](docs/feishu-setup-zh.md) (Steps 1-5) for detailed instructions
 
 ### One-Click CloudFormation Deployment
 
@@ -55,6 +56,7 @@ Click the button and fill in the parameters. The stack creates:
 | Memory Expiry Days | Pre-filled | Memory expiry in days (7-365) |
 | Feishu App ID | **Required** | Feishu app credentials |
 | Feishu App Secret | **Required** | Feishu app credentials |
+| Feishu Verification Token | **Required** | Feishu webhook verification token (Open Platform → Events & Callbacks → Encryption Strategy) |
 
 Leave all other options (Tags, Permissions, Stack failure options, etc.) as default.
 Check **I acknowledge that AWS CloudFormation might create IAM resources with custom names** at the bottom.
@@ -69,7 +71,7 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 3. **Publish App** — Create a version and submit for approval
 4. **Add to Group** — Add the bot to a Feishu group
 
-> See the [Feishu Bot Setup Guide](docs/feishu-setup-zh.md) (Steps 5-8) for detailed instructions
+> See the [Feishu Bot Setup Guide](docs/feishu-setup-zh.md) (Steps 6-9) for detailed instructions
 
 ### Done!
 > See the [Usage Guide](docs/usage-guide-zh.md) for features and examples

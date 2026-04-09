@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 from fastmcp.server.proxy import ProxyClient
 from mcp_lambda import BedrockAgentCoreGatewayTargetHandler, RequestHandler
 from mcp.types import JSONRPCRequest, JSONRPCResponse, JSONRPCError, ErrorData, TextContent

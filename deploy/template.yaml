@@ -1,6 +1,9 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  AWS TechBot - AI-powered AWS technical assistant on AgentCore Runtime
+  AWS TechBot - AI-powered AWS technical assistant on Amazon Bedrock AgentCore Runtime
   with Feishu bot integration and optional Memory for multi-turn conversations.
 
 Metadata:
@@ -21,11 +24,12 @@ Metadata:
         Parameters:
           - AppId
           - AppSecret
+          - FeishuVerificationToken
     ParameterLabels:
       ProjectName:
         default: Project Name
       ModelId:
-        default: Bedrock Model ID
+        default: Amazon Bedrock Model ID
       EnableMemory:
         default: Enable AgentCore Memory?
       MemoryExpiryDays:
@@ -34,6 +38,8 @@ Metadata:
         default: Feishu App ID
       AppSecret:
         default: Feishu App Secret
+      FeishuVerificationToken:
+        default: Feishu Verification Token
 
 Parameters:
   ProjectName:
@@ -52,7 +58,7 @@ Parameters:
       - minimax.minimax-m2.5
       - deepseek.v3.2
     Description: >
-      Select a Bedrock model. Only Nova Pro supports image input.
+      Select an Amazon Bedrock model. Only Nova Pro supports image input.
       Nova Pro (Amazon) | GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) | DeepSeek V3.2 (DeepSeek)
 
   EnableMemory:
@@ -82,6 +88,13 @@ Parameters:
     Type: String
     NoEcho: true
     Description: Feishu App Secret
+
+  FeishuVerificationToken:
+    Type: String
+    NoEcho: true
+    Description: >
+      Feishu Verification Token for webhook request validation.
+      Found in Feishu Open Platform → Events & Callbacks → Encryption Strategy.
 
 Mappings:
   ArtifactBucket:
@@ -565,7 +578,7 @@ Resources:
                     Properties:
                       search_phrase:
                         Type: string
-                        Description: Service name or keyword (e.g. Bedrock, Lambda, S3)
+                        Description: Service name or keyword (e.g. Amazon Bedrock, Lambda, S3)
                       limit:
                         Type: integer
                         Description: Maximum number of results (default 5)
@@ -917,6 +930,21 @@ Resources:
         COGNITO_CLIENT_ID: !Ref GatewayCognitoClient
 
   # =========================
+  # Secrets Manager (Feishu credentials)
+  # =========================
+  FeishuSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${ProjectName}-feishu-credentials
+      Description: Feishu bot credentials (App ID, App Secret, Verification Token)
+      SecretString: !Sub |
+        {
+          "APP_ID": "${AppId}",
+          "APP_SECRET": "${AppSecret}",
+          "VERIFICATION_TOKEN": "${FeishuVerificationToken}"
+        }
+
+  # =========================
   # API Gateway (Feishu webhook)
   # =========================
   TechBotApi:
@@ -981,6 +1009,9 @@ Resources:
               - Effect: Allow
                 Action: lambda:InvokeFunction
                 Resource: !GetAtt WorkerFunction.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref FeishuSecret
 
   HandlerFunction:
     Type: AWS::Lambda::Function
@@ -992,11 +1023,19 @@ Resources:
         ZipFile: |
           import json, os, boto3
           lambda_client = boto3.client("lambda")
+          sm_client = boto3.client("secretsmanager")
           WORKER_FUNCTION_NAME = os.environ.get("WORKER_FUNCTION_NAME", "")
+          SECRET_ARN = os.environ.get("SECRET_ARN", "")
+          _cached_secret = None
+          def get_secret():
+              global _cached_secret
+              if not _cached_secret:
+                  resp = sm_client.get_secret_value(SecretId=SECRET_ARN)
+                  _cached_secret = json.loads(resp["SecretString"])
+              return _cached_secret
           def resp(code, body):
               return {"statusCode": code, "headers": {"Content-Type": "application/json"}, "body": json.dumps(body, ensure_ascii=False)}
           def lambda_handler(event, context):
-              print(event)
               body = event.get("body")
               if body:
                   try:
@@ -1005,6 +1044,10 @@ Resources:
                       return resp(400, {"msg": "invalid json"})
               if "challenge" in event:
                   return resp(200, {"challenge": event["challenge"]})
+              secret = get_secret()
+              token = event.get("header", {}).get("token", "")
+              if token != secret.get("VERIFICATION_TOKEN", ""):
+                  return resp(403, {"msg": "invalid token"})
               if event.get("header", {}).get("event_type") != "im.message.receive_v1":
                   return resp(200, {"msg": "ok"})
               message = event.get("event", {}).get("message", {})
@@ -1028,6 +1071,7 @@ Resources:
       Environment:
         Variables:
           WORKER_FUNCTION_NAME: !Ref WorkerFunction
+          SECRET_ARN: !Ref FeishuSecret
 
   HandlerApiPermission:
     Type: AWS::Lambda::Permission
@@ -1063,6 +1107,9 @@ Resources:
                 Resource:
                   - !GetAtt AgentCoreRuntime.AgentRuntimeArn
                   - !Sub ${AgentCoreRuntime.AgentRuntimeArn}/runtime-endpoint/*
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref FeishuSecret
 
   WorkerFunction:
     Type: AWS::Lambda::Function
@@ -1080,8 +1127,7 @@ Resources:
         - !Sub arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-requests:19
       Environment:
         Variables:
-          APP_ID: !Ref AppId
-          APP_SECRET: !Ref AppSecret
+          SECRET_ARN: !Ref FeishuSecret
           AGENT_RUNTIME_ARN: !GetAtt AgentCoreRuntime.AgentRuntimeArn
           AGENTCORE_REGION: !Ref AWS::Region
 

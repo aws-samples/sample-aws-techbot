@@ -65,14 +65,14 @@ Bot：Lambda 函数的最大内存为 10,240 MB（10 GB）...
 
 例如，先问一个问题"S3有哪些存储类型"，再追问"我刚刚问你什么"，TechBot 能准确回忆：
 
-<img src="images/zh/09-memory-1.png" width="300" alt="多轮对话示例-提问"> <img src="images/zh/09-memory-2.png" width="300" alt="多轮对话示例-回忆">
+<img src="images/zh/memory-1.png" width="300" alt="多轮对话示例-提问"> <img src="images/zh/memory-2.png" width="300" alt="多轮对话示例-回忆">
 
 **使用技巧：**
 - 在群聊中对话的详情页中继续@TechBot，可以维持对话历史
 - 同一详情页内的对话会共享上下文，TechBot 能理解"那"、"它"、"上面提到的"等指代
 - 不同详情页之间的对话是独立的
 - 可以点击下图所示的按钮在详情页中进行回复
-<img src="images/zh/09-memory-3.png" width="500" alt="使用方式">
+<img src="images/zh/memory-3.png" width="500" alt="使用方式">
 
 ## 图片识别（注意：仅 Nova Pro 模型支持图片输入）
 
@@ -84,7 +84,7 @@ TechBot 支持图片输入。你可以发送截图让 TechBot 帮你分析：
 
 **使用方式：** 在飞书中选择 **富文本** 消息格式，@ 机器人后插入图片并附上你的问题即可。
 
-<img src="images/zh/10-image-1.png" width="500" alt="图片问题">
+<img src="images/zh/image-1.png" width="500" alt="图片问题">
 
 > 单张图片不能超过 5MB。
 

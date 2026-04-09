@@ -25,3 +25,6 @@ uv.lock
 
 # macOS
 .DS_Store
+
+# threatmodel
+.threatmodel/
