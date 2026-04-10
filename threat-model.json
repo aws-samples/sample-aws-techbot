@@ -1,0 +1,463 @@
+{
+  "schema": 1,
+  "applicationInfo": {
+    "name": "Threat Model Export",
+    "description": "AWS TechBot is an AI-powered technical assistant built on Amazon Bedrock AgentCore. It runs as a Docker container on AgentCore Runtime, connects to AgentCore Gateway (with Cognito JWT auth) to access 4 Lambda-based tool targets (AWS documentation search, China region service availability, pricing queries, customer stories). It integrates with Feishu/Lark as a chatbot via API Gateway + Lambda webhook with Verification Token validation. Feishu credentials stored in AWS Secrets Manager. Optional AgentCore Memory provides multi-turn conversation context. Deployed via one-click CloudFormation. Target users are internal AWS technical teams."
+  },
+  "architecture": {
+    "description": ""
+  },
+  "dataflow": {
+    "description": ""
+  },
+  "assumptions": [],
+  "mitigations": [
+    {
+      "id": "10b09e1e-e8a3-4435-ba66-890fcb937c32",
+      "numericId": 1,
+      "status": "mitigationIdentified",
+      "content": "Feishu webhook signature verification in Handler Lambda to validate requests originate from Feishu",
+      "displayOrder": 1,
+      "metadata": []
+    },
+    {
+      "id": "a5fa2488-e95c-41dc-803e-cbcdfb61d3d6",
+      "numericId": 2,
+      "status": "mitigationIdentified",
+      "content": "API Gateway throttling and Lambda concurrency limits to prevent resource abuse",
+      "displayOrder": 2,
+      "metadata": []
+    },
+    {
+      "id": "61bc971a-cd5b-43e7-9705-fd8189ca9063",
+      "numericId": 3,
+      "status": "mitigationIdentified",
+      "content": "Feishu App Secret should be stored in Secrets Manager instead of Lambda env vars",
+      "displayOrder": 3,
+      "metadata": []
+    },
+    {
+      "id": "30e44faf-0800-4123-b738-eec12abf73d0",
+      "numericId": 4,
+      "status": "mitigationIdentified",
+      "content": "Cognito CUSTOM_JWT authorizer on AgentCore Gateway validates Bearer tokens with OIDC discovery",
+      "displayOrder": 4,
+      "metadata": []
+    },
+    {
+      "id": "951c62e1-09a0-4dad-99d8-37e55bf8cfd9",
+      "numericId": 5,
+      "status": "mitigationIdentified",
+      "content": "System prompt restricts agent to only answer AWS questions, rejects non-AWS queries",
+      "displayOrder": 5,
+      "metadata": []
+    },
+    {
+      "id": "852da195-733b-4902-9011-223a8a8ee844",
+      "numericId": 6,
+      "status": "mitigationIdentified",
+      "content": "All communications use HTTPS/TLS - Gateway, Cognito, API Gateway, Feishu APIs",
+      "displayOrder": 6,
+      "metadata": []
+    },
+    {
+      "id": "2ca8a7b0-ac14-41b1-a8fc-15511adba866",
+      "numericId": 7,
+      "status": "mitigationIdentified",
+      "content": "Memory sessions scoped by session_id and actor_id to limit cross-user contamination",
+      "displayOrder": 7,
+      "metadata": []
+    },
+    {
+      "id": "3e6006e8-cb9a-405e-a9f1-fa6ae40c0d0b",
+      "numericId": 8,
+      "status": "mitigationIdentified",
+      "content": "Cognito token auto-refresh with 60s buffer, thread-safe caching in gateway_cognito.py",
+      "displayOrder": 8,
+      "metadata": []
+    },
+    {
+      "id": "370e14ea-deb9-4e47-91ad-5da832c6254f",
+      "numericId": 9,
+      "status": "mitigationIdentified",
+      "content": "Handler Lambda validates Feishu Verification Token from Secrets Manager, rejects requests with invalid token (403)",
+      "displayOrder": 9,
+      "metadata": []
+    },
+    {
+      "id": "e3bba543-17f3-4727-866d-e0c12bcc2e42",
+      "numericId": 10,
+      "status": "mitigationIdentified",
+      "content": "Cognito CUSTOM_JWT authorizer on AgentCore Gateway with OIDC discovery and token auto-refresh (60s buffer)",
+      "displayOrder": 10,
+      "metadata": []
+    },
+    {
+      "id": "716630d2-6204-4b81-afe1-7fc9653b2556",
+      "numericId": 11,
+      "status": "mitigationIdentified",
+      "content": "System prompt restricts agent to only answer AWS questions, rejects non-AWS queries",
+      "displayOrder": 11,
+      "metadata": []
+    },
+    {
+      "id": "4db47658-db25-41b5-a66c-913f9c981bb0",
+      "numericId": 12,
+      "status": "mitigationIdentified",
+      "content": "All communications use HTTPS/TLS - Gateway, Cognito, API Gateway, Feishu APIs, Secrets Manager",
+      "displayOrder": 12,
+      "metadata": []
+    },
+    {
+      "id": "a3bcad7b-0f1a-484b-868b-2e0944306c9b",
+      "numericId": 13,
+      "status": "mitigationIdentified",
+      "content": "API Gateway throttling and Lambda concurrency limits to prevent resource abuse and cost escalation",
+      "displayOrder": 13,
+      "metadata": []
+    },
+    {
+      "id": "63e6d66b-1956-43b3-b4bd-338206e89de3",
+      "numericId": 14,
+      "status": "mitigationIdentified",
+      "content": "Feishu credentials (App ID, App Secret, Verification Token) stored in AWS Secrets Manager with encryption at rest",
+      "displayOrder": 14,
+      "metadata": []
+    },
+    {
+      "id": "f0ba03bb-d789-4023-9914-4bd990014067",
+      "numericId": 15,
+      "status": "mitigationIdentified",
+      "content": "Memory sessions scoped by session_id and actor_id to limit cross-user contamination",
+      "displayOrder": 15,
+      "metadata": []
+    }
+  ],
+  "assumptionLinks": [],
+  "mitigationLinks": [
+    {
+      "linkedId": "7e7760c7-9f8e-42be-b573-a8bb2dc9f9fa",
+      "mitigationId": "10b09e1e-e8a3-4435-ba66-890fcb937c32"
+    },
+    {
+      "linkedId": "72383f5f-1fc0-488b-8d6b-6a0aee9a00a9",
+      "mitigationId": "30e44faf-0800-4123-b738-eec12abf73d0"
+    },
+    {
+      "linkedId": "85f5af60-1a20-4863-9ba5-817a911664fc",
+      "mitigationId": "951c62e1-09a0-4dad-99d8-37e55bf8cfd9"
+    },
+    {
+      "linkedId": "63623906-e61a-4ce5-aff5-6385793893b5",
+      "mitigationId": "852da195-733b-4902-9011-223a8a8ee844"
+    },
+    {
+      "linkedId": "50bc08ef-cba3-4303-81f0-59c4f09db90e",
+      "mitigationId": "a5fa2488-e95c-41dc-803e-cbcdfb61d3d6"
+    },
+    {
+      "linkedId": "9a6d2c33-9252-468d-97a7-ba9f172fe7d4",
+      "mitigationId": "61bc971a-cd5b-43e7-9705-fd8189ca9063"
+    },
+    {
+      "linkedId": "1f12f78e-88f2-4123-8075-6504338ab2c2",
+      "mitigationId": "2ca8a7b0-ac14-41b1-a8fc-15511adba866"
+    },
+    {
+      "linkedId": "72383f5f-1fc0-488b-8d6b-6a0aee9a00a9",
+      "mitigationId": "3e6006e8-cb9a-405e-a9f1-fa6ae40c0d0b"
+    },
+    {
+      "linkedId": "7e7760c7-9f8e-42be-b573-a8bb2dc9f9fa",
+      "mitigationId": "a5fa2488-e95c-41dc-803e-cbcdfb61d3d6"
+    },
+    {
+      "linkedId": "9ff1f283-2a60-40b4-b2ea-3c69bd750f5c",
+      "mitigationId": "370e14ea-deb9-4e47-91ad-5da832c6254f"
+    },
+    {
+      "linkedId": "9ff1f283-2a60-40b4-b2ea-3c69bd750f5c",
+      "mitigationId": "a3bcad7b-0f1a-484b-868b-2e0944306c9b"
+    },
+    {
+      "linkedId": "16ee5ac8-2bae-43c1-b666-157ddc37aba9",
+      "mitigationId": "e3bba543-17f3-4727-866d-e0c12bcc2e42"
+    },
+    {
+      "linkedId": "a48b9111-ce5a-4970-bdff-f45f8b5a98bb",
+      "mitigationId": "716630d2-6204-4b81-afe1-7fc9653b2556"
+    },
+    {
+      "linkedId": "38e2abb9-ff99-4425-8218-4cdc1ac4fba2",
+      "mitigationId": "4db47658-db25-41b5-a66c-913f9c981bb0"
+    },
+    {
+      "linkedId": "19ad07e6-87a7-484b-b332-1a0599088196",
+      "mitigationId": "a3bcad7b-0f1a-484b-868b-2e0944306c9b"
+    },
+    {
+      "linkedId": "5f9c8959-1259-439e-ac37-1bb467b3a39e",
+      "mitigationId": "63e6d66b-1956-43b3-b4bd-338206e89de3"
+    },
+    {
+      "linkedId": "24d14db8-ea8d-467f-8261-e0ee9a3fa914",
+      "mitigationId": "f0ba03bb-d789-4023-9914-4bd990014067"
+    }
+  ],
+  "threats": [
+    {
+      "id": "7e7760c7-9f8e-42be-b573-a8bb2dc9f9fa",
+      "numericId": 1,
+      "threatSource": "External attacker",
+      "prerequisites": "with internet access to API Gateway endpoint",
+      "threatAction": "send crafted webhook payloads to /chat endpoint which has no authentication",
+      "threatImpact": "unauthorized invocation of AgentCore Runtime, resource abuse, cost escalation",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with internet access to API Gateway endpoint can send crafted webhook payloads to /chat endpoint which has no authentication, which leads to unauthorized invocation of AgentCore Runtime, resource abuse, cost escalation",
+      "displayOrder": 1,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-S",
+        "API"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "72383f5f-1fc0-488b-8d6b-6a0aee9a00a9",
+      "numericId": 2,
+      "threatSource": "External attacker",
+      "prerequisites": "with knowledge of the Gateway MCP endpoint URL",
+      "threatAction": "attempt to bypass Cognito JWT auth or use stolen/expired tokens",
+      "threatImpact": "unauthorized access to Gateway tools, data exfiltration from AWS docs/pricing",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with knowledge of the Gateway MCP endpoint URL can attempt to bypass Cognito JWT auth or use stolen/expired tokens, which leads to unauthorized access to Gateway tools, data exfiltration from AWS docs/pricing",
+      "displayOrder": 2,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-S",
+        "Auth"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "85f5af60-1a20-4863-9ba5-817a911664fc",
+      "numericId": 3,
+      "threatSource": "Malicious user",
+      "prerequisites": "with access to the Feishu bot",
+      "threatAction": "inject prompt to make agent call unintended tools or return sensitive info",
+      "threatImpact": "information disclosure, misuse of tools, misleading responses",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A Malicious user with access to the Feishu bot can inject prompt to make agent call unintended tools or return sensitive info, which leads to information disclosure, misuse of tools, misleading responses",
+      "displayOrder": 3,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-T",
+        "Prompt-Injection"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "63623906-e61a-4ce5-aff5-6385793893b5",
+      "numericId": 4,
+      "threatSource": "External attacker",
+      "prerequisites": "with ability to intercept network traffic",
+      "threatAction": "intercept Cognito client secret or JWT token in transit",
+      "threatImpact": "credential theft, unauthorized Gateway access",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with ability to intercept network traffic can intercept Cognito client secret or JWT token in transit, which leads to credential theft, unauthorized Gateway access",
+      "displayOrder": 4,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-I",
+        "Credential"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "50bc08ef-cba3-4303-81f0-59c4f09db90e",
+      "numericId": 5,
+      "threatSource": "External attacker",
+      "prerequisites": "with internet access",
+      "threatAction": "flood API Gateway /chat endpoint with requests causing DoS",
+      "threatImpact": "service unavailability, excessive AWS costs from Lambda/Runtime invocations",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with internet access can flood API Gateway /chat endpoint with requests causing DoS, which leads to service unavailability, excessive AWS costs from Lambda/Runtime invocations",
+      "displayOrder": 5,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-D",
+        "DoS"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "9a6d2c33-9252-468d-97a7-ba9f172fe7d4",
+      "numericId": 6,
+      "threatSource": "Insider or attacker",
+      "prerequisites": "with access to CloudFormation parameters or Lambda env vars",
+      "threatAction": "extract Feishu App Secret stored in Lambda environment variables",
+      "threatImpact": "Feishu bot impersonation, send messages as the bot",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A Insider or attacker with access to CloudFormation parameters or Lambda env vars can extract Feishu App Secret stored in Lambda environment variables, which leads to Feishu bot impersonation, send messages as the bot",
+      "displayOrder": 6,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-I",
+        "Secret"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "1f12f78e-88f2-4123-8075-6504338ab2c2",
+      "numericId": 7,
+      "threatSource": "Malicious user",
+      "prerequisites": "with Feishu bot access and Memory enabled",
+      "threatAction": "poison conversation memory with misleading context for other users",
+      "threatImpact": "future responses based on poisoned memory, misinformation",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A Malicious user with Feishu bot access and Memory enabled can poison conversation memory with misleading context for other users, which leads to future responses based on poisoned memory, misinformation",
+      "displayOrder": 7,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-T",
+        "Memory"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "9ff1f283-2a60-40b4-b2ea-3c69bd750f5c",
+      "numericId": 8,
+      "threatSource": "External attacker",
+      "prerequisites": "with internet access to API Gateway endpoint",
+      "threatAction": "send crafted webhook payloads bypassing Verification Token check",
+      "threatImpact": "unauthorized invocation of AgentCore Runtime, resource abuse, cost escalation",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with internet access to API Gateway endpoint can send crafted webhook payloads bypassing Verification Token check, which leads to unauthorized invocation of AgentCore Runtime, resource abuse, cost escalation",
+      "displayOrder": 8,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-S",
+        "API",
+        "Mitigated-by-VerificationToken"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "16ee5ac8-2bae-43c1-b666-157ddc37aba9",
+      "numericId": 9,
+      "threatSource": "External attacker",
+      "prerequisites": "with knowledge of the Gateway MCP endpoint URL",
+      "threatAction": "attempt to bypass Cognito JWT auth or use stolen/expired tokens",
+      "threatImpact": "unauthorized access to Gateway tools, data exfiltration from AWS docs/pricing",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with knowledge of the Gateway MCP endpoint URL can attempt to bypass Cognito JWT auth or use stolen/expired tokens, which leads to unauthorized access to Gateway tools, data exfiltration from AWS docs/pricing",
+      "displayOrder": 9,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-S",
+        "Auth"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "a48b9111-ce5a-4970-bdff-f45f8b5a98bb",
+      "numericId": 10,
+      "threatSource": "Malicious user",
+      "prerequisites": "with access to the Feishu bot",
+      "threatAction": "inject prompt to make agent call unintended tools or return sensitive info",
+      "threatImpact": "information disclosure, misuse of tools, misleading responses",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A Malicious user with access to the Feishu bot can inject prompt to make agent call unintended tools or return sensitive info, which leads to information disclosure, misuse of tools, misleading responses",
+      "displayOrder": 10,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-T",
+        "Prompt-Injection"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "38e2abb9-ff99-4425-8218-4cdc1ac4fba2",
+      "numericId": 11,
+      "threatSource": "External attacker",
+      "prerequisites": "with ability to intercept network traffic",
+      "threatAction": "intercept Cognito client secret or JWT token in transit",
+      "threatImpact": "credential theft, unauthorized Gateway access",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with ability to intercept network traffic can intercept Cognito client secret or JWT token in transit, which leads to credential theft, unauthorized Gateway access",
+      "displayOrder": 11,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-I",
+        "Credential"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "19ad07e6-87a7-484b-b332-1a0599088196",
+      "numericId": 12,
+      "threatSource": "External attacker",
+      "prerequisites": "with internet access",
+      "threatAction": "flood API Gateway /chat endpoint with requests causing DoS",
+      "threatImpact": "service unavailability, excessive AWS costs from Lambda/Runtime invocations",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A External attacker with internet access can flood API Gateway /chat endpoint with requests causing DoS, which leads to service unavailability, excessive AWS costs from Lambda/Runtime invocations",
+      "displayOrder": 12,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-D",
+        "DoS"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "5f9c8959-1259-439e-ac37-1bb467b3a39e",
+      "numericId": 13,
+      "threatSource": "Insider or attacker",
+      "prerequisites": "with IAM access to Secrets Manager",
+      "threatAction": "retrieve Feishu credentials from Secrets Manager",
+      "threatImpact": "Feishu bot impersonation, send messages as the bot",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A Insider or attacker with IAM access to Secrets Manager can retrieve Feishu credentials from Secrets Manager, which leads to Feishu bot impersonation, send messages as the bot",
+      "displayOrder": 13,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-I",
+        "Secret",
+        "Mitigated-by-SecretsManager"
+      ],
+      "metadata": []
+    },
+    {
+      "id": "24d14db8-ea8d-467f-8261-e0ee9a3fa914",
+      "numericId": 14,
+      "threatSource": "Malicious user",
+      "prerequisites": "with Feishu bot access and Memory enabled",
+      "threatAction": "poison conversation memory with misleading context for other users",
+      "threatImpact": "future responses based on poisoned memory, misinformation",
+      "impactedGoal": [],
+      "impactedAssets": [],
+      "statement": "A Malicious user with Feishu bot access and Memory enabled can poison conversation memory with misleading context for other users, which leads to future responses based on poisoned memory, misinformation",
+      "displayOrder": 14,
+      "status": "threatIdentified",
+      "tags": [
+        "STRIDE-T",
+        "Memory"
+      ],
+      "metadata": []
+    }
+  ]
+}

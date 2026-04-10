@@ -50,7 +50,7 @@
 
 | 参数 | 是否必填 | 说明 |
 |------|----------|------|
-| Model ID | 已预填 | 可选 Nova Pro、GLM-5、MiniMax M2.5、DeepSeek V3.2（仅 Nova Pro 支持图片输入） |
+| Model ID | 已预填 | 可选 Nova Pro、GLM-5、MiniMax M2.5（仅 Nova Pro 支持图片输入） |
 | Enable Memory | 已预填 | `true` 开启多轮记忆，`false` 无状态 |
 | Memory Expiry Days | 已预填 | 记忆过期天数（7-365） |
 | Feishu App ID | **必填** | 飞书应用凭证 |
@@ -80,7 +80,7 @@
 ```
 AgentCore Runtime (Docker 容器)
         │
-        └── Agent (Bedrock 模型) → MCPClient
+        └── Agent (Amazon Bedrock 模型) → MCPClient
                                      │
                           AgentCore Gateway (MCP endpoint + Cognito 认证)
                                      │
@@ -96,7 +96,6 @@ AgentCore Runtime (Docker 容器)
 |------|---------------------|---------------------|---------|
 | Amazon Nova Pro | $0.80 | $3.20 | ✅ |
 | MiniMax M2.5 | $0.30 | $1.20 | ❌ |
-| DeepSeek V3.2 | $0.62 | $1.85 | ❌ |
 | GLM-5 (Zhipu AI) | $1.00 | $3.20 | ❌ |
 
 ## 成本估算
@@ -111,7 +110,6 @@ AgentCore Runtime (Docker 容器)
 | 模型 | 每次调用（平均） | 月费用 (300 次) |
 |------|---------|---------------|
 | MiniMax M2.5 | ~$0.012 | ~$3.7 |
-| DeepSeek V3.2 | ~$0.025 | ~$7.6 |
 | Nova Pro | ~$0.033 | ~$9.9 |
 | GLM-5 | ~$0.041 | ~$12.3 |
 
@@ -131,7 +129,6 @@ AgentCore Runtime (Docker 容器)
 | 模型 | 模型调用 | 基础设施 | 合计 |
 |------|---------|---------|------|
 | MiniMax M2.5 | ~$3.7 | < $4 | **< $8** |
-| DeepSeek V3.2 | ~$7.6 | < $4 | **< $12** |
 | Nova Pro | ~$9.9 | < $4 | **< $14** |
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
@@ -143,7 +140,9 @@ This is sample code for demonstration purposes only. You should work with your s
 
 ## Security
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+Security is a shared responsibility between AWS and the customer. This sample deploys resources within your AWS account — you are responsible for securing your account, managing IAM permissions, and configuring services according to your organization's requirements. AWS is responsible for the security of the underlying cloud infrastructure. For more information, see the [AWS Shared Responsibility Model](https://aws.amazon.com/compliance/shared-responsibility-model/).
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for reporting security issues.
 
 ## License
 

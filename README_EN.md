@@ -51,7 +51,7 @@ Click the button and fill in the parameters. The stack creates:
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| Model ID | Pre-filled | Nova Pro, GLM-5, MiniMax M2.5, or DeepSeek V3.2 (only Nova Pro supports image input) |
+| Model ID | Pre-filled | Nova Pro, GLM-5, MiniMax M2.5 (only Nova Pro supports image input) |
 | Enable Memory | Pre-filled | `true` for multi-turn memory, `false` for stateless |
 | Memory Expiry Days | Pre-filled | Memory expiry in days (7-365) |
 | Feishu App ID | **Required** | Feishu app credentials |
@@ -81,7 +81,7 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 ```
 AgentCore Runtime (Docker Container)
         │
-        └── Agent (Bedrock Model) → MCPClient
+        └── Agent (Amazon Bedrock Model) → MCPClient
                                      │
                           AgentCore Gateway (MCP endpoint + Cognito Auth)
                                      │
@@ -97,7 +97,6 @@ AgentCore Runtime (Docker Container)
 |-------|----------------------|----------------------|-------------|
 | Amazon Nova Pro | $0.80 | $3.20 | Yes |
 | MiniMax M2.5 | $0.30 | $1.20 | No |
-| DeepSeek V3.2 | $0.62 | $1.85 | No |
 | GLM-5 (Zhipu AI) | $1.00 | $3.20 | No |
 
 ## Cost Estimation
@@ -113,7 +112,6 @@ Based on real-world testing (documentation queries, pricing lookups, China regio
 | Model | Per Query (avg) | Monthly (300 queries) |
 |-------|-----------------|-----------------------|
 | MiniMax M2.5 | ~$0.012 | ~$3.7 |
-| DeepSeek V3.2 | ~$0.025 | ~$7.6 |
 | Nova Pro | ~$0.033 | ~$9.9 |
 | GLM-5 | ~$0.041 | ~$12.3 |
 
@@ -133,7 +131,6 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 | Model | Model Cost | Infrastructure | Total |
 |-------|-----------|---------------|-------|
 | MiniMax M2.5 | ~$3.7 | < $4 | **< $8** |
-| DeepSeek V3.2 | ~$7.6 | < $4 | **< $12** |
 | Nova Pro | ~$9.9 | < $4 | **< $14** |
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
@@ -145,7 +142,9 @@ This is sample code for demonstration purposes only. You should work with your s
 
 ## Security
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+Security is a shared responsibility between AWS and the customer. This sample deploys resources within your AWS account — you are responsible for securing your account, managing IAM permissions, and configuring services according to your organization's requirements. AWS is responsible for the security of the underlying cloud infrastructure. For more information, see the [AWS Shared Responsibility Model](https://aws.amazon.com/compliance/shared-responsibility-model/).
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for reporting security issues.
 
 ## License
 
