@@ -71,8 +71,10 @@
 ## 第六步：配置加密
 
 1. 进入 **事件与回调** → **加密策略**
-2. 复制 **Verification Token** — 部署 CloudFormation 时需要填写
+2. 复制 **Verification Token （⚠️ 注意：一定要点击眼睛图标再进行复制）** — 部署 CloudFormation 时需要填写
 <img src="images/zh/secrets-1.png" width="500" alt="加密配置">
+3. 复制点击眼睛图标后出现的 **明文形式的密码**
+<img src="images/zh/secrets-2.png" width="500" alt="加密配置">
 
 ---
 

@@ -85,12 +85,10 @@ Parameters:
 
   AppSecret:
     Type: String
-    NoEcho: true
     Description: Feishu App Secret
 
   FeishuVerificationToken:
     Type: String
-    NoEcho: true
     Description: >
       Feishu Verification Token for webhook request validation.
       Found in Feishu Open Platform → Events & Callbacks → Encryption Strategy.
