@@ -136,6 +136,45 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 
 > **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova Pro supports image input.
 
+
+## Customization
+
+After deployment, you can customize the solution to fit your needs.
+
+**Modify Agent Behavior**
+
+Edit `MAIN_SYSTEM_PROMPT` in `main.py` to adjust the agent's response style, scope, or instructions. Rebuild and update the Runtime after changes.
+
+**Add New Tools**
+
+1. Create a new Lambda function implementing your tool logic
+2. In the AgentCore Gateways console, select your Gateway → Targets → Add. Provide the Lambda ARN and tool schema definition
+3. The agent will automatically discover the new tool on next startup — no agent code changes needed
+
+**Update Agent Image**
+
+After modifying code, build a new image, push to ECR, and update the Runtime:
+
+```bash
+# Build ARM64 image
+docker buildx build --platform linux/arm64 -t techbot:latest .
+
+# Push to ECR
+AWS_REGION=us-west-2
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+docker tag techbot:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/techbot-repo:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/techbot-repo:latest
+
+# Update AgentCore Runtime (DEFAULT endpoint auto-points to latest version)
+aws bedrock-agentcore-control update-agent-runtime \
+    --agent-runtime-id "your-runtime-id" \
+    --agent-runtime-artifact '{"containerConfiguration":{"containerUri":"'$ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/techbot-repo:latest"}}' \
+    --network-configuration '{"networkMode":"PUBLIC"}'
+```
+
+> The Runtime ID can be found in CloudFormation Outputs.
+
 ## Disclaimer
 
 This is sample code for demonstration purposes only. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before deployment. Deploying this solution may incur AWS charges.

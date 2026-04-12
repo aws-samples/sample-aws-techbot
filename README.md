@@ -134,6 +134,45 @@ AgentCore Runtime (Docker 容器)
 
 > **几乎所有服务均按需计费，不提问时不产生费用。** 实际费用因问题复杂度（工具调用次数、响应时间）和 Memory 开关而异。仅 Nova Pro 支持图片输入。
 
+
+## 自定义与扩展
+
+部署完成后，你可以根据自身需求进行定制化修改。
+
+**修改 Agent 行为**
+
+编辑 `main.py` 中的 `MAIN_SYSTEM_PROMPT`，调整 Agent 的回答风格、限制范围或添加新的指令。修改后需重新构建镜像并更新 Runtime。
+
+**添加新工具**
+
+1. 编写一个新的 Lambda 函数，实现你的工具逻辑
+2. 在 AgentCore Gateways 控制台中，选择你的 Gateway → Targets → Add，填入 Lambda ARN 和工具的 Schema 定义
+3. Agent 下次启动时会自动发现新工具，无需修改 Agent 代码
+
+**更新 Agent 镜像**
+
+修改代码后，构建新镜像并推送到 ECR，然后更新 Runtime：
+
+```bash
+# 构建 ARM64 镜像
+docker buildx build --platform linux/arm64 -t techbot:latest .
+
+# 推送到 ECR
+AWS_REGION=us-west-2
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+docker tag techbot:latest $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/techbot-repo:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/techbot-repo:latest
+
+# 更新 AgentCore Runtime（DEFAULT 端点会自动指向最新版本）
+aws bedrock-agentcore-control update-agent-runtime \
+    --agent-runtime-id "your-runtime-id" \
+    --agent-runtime-artifact '{"containerConfiguration":{"containerUri":"'$ACCOUNT_ID'.dkr.ecr.'$AWS_REGION'.amazonaws.com/techbot-repo:latest"}}' \
+    --network-configuration '{"networkMode":"PUBLIC"}'
+```
+
+> Runtime ID 可在 CloudFormation Outputs 中找到。
+
 ## Disclaimer
 
 This is sample code for demonstration purposes only. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before deployment. Deploying this solution may incur AWS charges.
