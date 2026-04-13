@@ -50,7 +50,7 @@
 
 | 参数 | 是否必填 | 说明 |
 |------|----------|------|
-| Model ID | 已预填 | 可选 Nova 2 Lite、GLM-5、MiniMax M2.5（仅 Nova 2 Lite 支持图片输入） |
+| Model ID | 已预填 GLM-5（效果最好） | 可选 Nova 2 Lite、GLM-5、MiniMax M2.5（仅 Nova 2 Lite 支持图片输入） |
 | Enable Memory | 已预填 | `true` 开启多轮记忆，`false` 无状态 |
 | Memory Expiry Days | 已预填 | 记忆过期天数（7-365） |
 | Feishu App ID | **必填** | 飞书应用凭证 |

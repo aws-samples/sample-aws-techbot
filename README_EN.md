@@ -51,7 +51,7 @@ Click the button and fill in the parameters. The stack creates:
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| Model ID | Pre-filled | Nova 2 Lite, GLM-5, MiniMax M2.5 (only Nova 2 Lite supports image input) |
+| Model ID | Pre-filled GLM-5 (Best Performance) | Nova 2 Lite, GLM-5, MiniMax M2.5 (only Nova 2 Lite supports image input) |
 | Enable Memory | Pre-filled | `true` for multi-turn memory, `false` for stateless |
 | Memory Expiry Days | Pre-filled | Memory expiry in days (7-365) |
 | Feishu App ID | **Required** | Feishu app credentials |
