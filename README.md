@@ -57,9 +57,9 @@
 | Feishu App Secret | **必填** | 飞书应用凭证 |
 | Feishu Verification Token | **必填** | 飞书 Webhook 验证令牌（开放平台 → 事件与回调 → 加密策略） |
 
-其余选项（Tags、Permissions、Stack failure options 等）保持默认即可，无需修改。
-页面底部勾选 **✅ I acknowledge that AWS CloudFormation might create IAM resources with custom names**
-点击 **Create stack**，等待堆栈状态变为 `CREATE_COMPLETE`（约 5 分钟）。
+- 其余选项（Tags、Permissions、Stack failure options 等）保持默认即可，无需修改。
+- 页面底部勾选 **✅ I acknowledge that AWS CloudFormation might create IAM resources with custom names**
+- 点击 **Create stack**，等待堆栈状态变为 `CREATE_COMPLETE`（约 5 分钟）。
 
 ### 部署后：完成飞书配置
 
