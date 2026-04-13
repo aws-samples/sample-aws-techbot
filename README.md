@@ -119,9 +119,9 @@ AgentCore Runtime (Docker 容器)
 
 | 服务 | 说明 | 月费用 |
 |------|------|--------|
-| Runtime | CPU + Memory，按实际消耗计费 | < $3 |
-| Gateway | 平均每问题 ~5 次 API 调用 | < $0.01 |
-| Memory（可选） | 多轮对话记忆 | < $0.5 |
+| Bedrock Agentcore Runtime | CPU + Memory，按实际消耗计费 | < $3 |
+| Bedrock Agentcore Gateway | 平均每问题 ~5 次 API 调用 | < $0.01 |
+| Bedrock Agentcore Memory（可选） | 多轮对话记忆 | < $0.5 |
 | Lambda / API Gateway | | 免费额度内 |
 
 **月度总费用**
