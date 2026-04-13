@@ -257,7 +257,7 @@ def lambda_handler(event, context):
         print(f"❌ AgentCore invoke failed: {e}")
         err_str = str(e)
         if "doesn't support the image" in err_str or "image content block" in err_str:
-            user_msg = "❌ 当前模型不支持图片输入，仅 Nova Pro 和 Kimi K2.5 模型支持图片。请切换模型或仅发送文字提问。"
+            user_msg = "❌ 当前模型不支持图片输入。请切换模型或仅发送文字提问。"
         elif "500" in err_str or "RuntimeClientError" in err_str:
             user_msg = "❌ 服务暂时不可用，AgentCore Runtime 可能正在启动中，请稍后重试。"
         elif "timeout" in err_str.lower() or "timed out" in err_str.lower():

@@ -51,7 +51,7 @@ Click the button and fill in the parameters. The stack creates:
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| Model ID | Pre-filled | Nova Pro, GLM-5, MiniMax M2.5 (only Nova Pro supports image input) |
+| Model ID | Pre-filled | Nova 2 Lite, GLM-5, MiniMax M2.5 (only Nova 2 Lite supports image input) |
 | Enable Memory | Pre-filled | `true` for multi-turn memory, `false` for stateless |
 | Memory Expiry Days | Pre-filled | Memory expiry in days (7-365) |
 | Feishu App ID | **Required** | Feishu app credentials |
@@ -95,7 +95,7 @@ AgentCore Runtime (Docker Container)
 
 | Model | Input (per 1M tokens) | Output (per 1M tokens) | Image Input |
 |-------|----------------------|----------------------|-------------|
-| Amazon Nova Pro | $0.80 | $3.20 | Yes |
+| Nova 2 Lite | $0.80 | $3.20 | Yes |
 | MiniMax M2.5 | $0.30 | $1.20 | No |
 | GLM-5 (Zhipu AI) | $1.00 | $3.20 | No |
 
@@ -112,7 +112,7 @@ Based on real-world testing (documentation queries, pricing lookups, China regio
 | Model | Per Query (avg) | Monthly (300 queries) |
 |-------|-----------------|-----------------------|
 | MiniMax M2.5 | ~$0.012 | ~$3.7 |
-| Nova Pro | ~$0.033 | ~$9.9 |
+| Nova 2 Lite | ~$0.033 | ~$9.9 |
 | GLM-5 | ~$0.041 | ~$12.3 |
 
 **AgentCore Infrastructure Cost**
@@ -131,10 +131,10 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 | Model | Model Cost | Infrastructure | Total |
 |-------|-----------|---------------|-------|
 | MiniMax M2.5 | ~$3.7 | < $4 | **< $8** |
-| Nova Pro | ~$9.9 | < $4 | **< $14** |
+| Nova 2 Lite | ~$9.9 | < $4 | **< $14** |
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
-> **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova Pro supports image input.
+> **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova 2 Lite supports image input.
 
 
 ## Customization
