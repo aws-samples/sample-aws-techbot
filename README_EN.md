@@ -58,9 +58,9 @@ Click the button and fill in the parameters. The stack creates:
 | Feishu App Secret | **Required** | Feishu app credentials |
 | Feishu Verification Token | **Required** | Feishu webhook verification token (Open Platform → Events & Callbacks → Encryption Strategy) |
 
-Leave all other options (Tags, Permissions, Stack failure options, etc.) as default.
-Check **I acknowledge that AWS CloudFormation might create IAM resources with custom names** at the bottom.
-Click **Create stack** and wait for `CREATE_COMPLETE` (~5 minutes).
+- Leave all other options (Tags, Permissions, Stack failure options, etc.) as default.
+- Check **✅ I acknowledge that AWS CloudFormation might create IAM resources with custom names** at the bottom.
+- Click **Create stack** and wait for `CREATE_COMPLETE` (~5 minutes).
 
 ### Post-Deployment: Complete Feishu Configuration
 
