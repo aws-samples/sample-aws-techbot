@@ -252,13 +252,15 @@ def lambda_handler(event, context):
 
     try:
         final_text = invoke_agentcore(agent_payload)
+        # Check if response indicates image not supported
+        if "doesn't support the image" in final_text or "image content block" in final_text:
+            feishu_patch_card(token, bot_msg_id, "❌ 当前模型不支持图片输入。请切换模型或仅发送文字提问。")
+            return {"statusCode": 200, "body": json.dumps({"msg": "image_not_supported"})}
         feishu_patch_card(token, bot_msg_id, final_text)
     except Exception as e:
         print(f"❌ AgentCore invoke failed: {e}")
         err_str = str(e)
-        if "doesn't support the image" in err_str or "image content block" in err_str:
-            user_msg = "❌ 当前模型不支持图片输入。请切换模型或仅发送文字提问。"
-        elif "500" in err_str or "RuntimeClientError" in err_str:
+        if "500" in err_str or "RuntimeClientError" in err_str:
             user_msg = "❌ 服务暂时不可用，AgentCore Runtime 可能正在启动中，请稍后重试。"
         elif "timeout" in err_str.lower() or "timed out" in err_str.lower():
             user_msg = "❌ 请求超时，问题可能比较复杂，请稍后重试或简化问题。"
