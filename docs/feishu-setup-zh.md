@@ -49,6 +49,7 @@
 {
   "scopes": {
     "tenant": [
+      "im:message.p2p_msg:readonly",
       "contact:user.base:readonly",
       "contact:user.employee_id:readonly",
       "im:chat:readonly",
@@ -78,7 +79,7 @@
 
 ---
 
-### ⏸️ 部署 CloudFormation
+## ⏸️ 部署 CloudFormation
 
 飞书应用已准备就绪，现在请返回 [README — 一键部署 CloudFormation](../README.md#一键部署-cloudformation)，使用刚才获取的 App ID 和 App Secret 完成堆栈部署。
 
@@ -123,8 +124,14 @@
 
 > 应用版本发布并审批通过后，机器人才能正常使用。
 
-## 第八步：将机器人添加到群聊
+## 第八步：开始聊天
+#### 私聊
+发布app之后，会看到一下提示
+<img src="images/zh/selfchat-1.png" width="400" alt="私聊">
+1. 点击打开应用
+2. **@机器人 + 问题** ，开始聊天即可
 
+#### 群聊
 1. 打开任意飞书群聊/创建群聊
 2. 点击右上角的 **···**
 
@@ -139,7 +146,7 @@
 
 ## 第九步：测试（使用 GLM-5 模型）
 
-在群聊中发送消息：首先输入 **@**，选择机器人
+在聊天中发送消息：首先输入 **@**，选择机器人
 
 <img src="images/zh/test-1.png" width="400" alt="测试">
 
