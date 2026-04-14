@@ -78,7 +78,7 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 
 ## Architecture
 
-<img src="aws-techbot-architecture-diagram" alt="diagram">
+<img src="aws-techbot-architecture-diagram" width="600" alt="diagram">
 
 ## Model Pricing
 

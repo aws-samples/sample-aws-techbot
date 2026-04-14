@@ -77,7 +77,7 @@
 
 ## 架构
 
-<img src="aws-techbot-architecture-diagram" alt="架构图">
+<img src="aws-techbot-architecture-diagram" width="600" alt="架构图">
 
 ## 模型定价
 
