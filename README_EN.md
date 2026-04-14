@@ -101,7 +101,7 @@ Based on real-world testing (documentation queries, pricing lookups, China regio
 | Model | Per Query (avg) | Monthly (300 queries) |
 |-------|-----------------|-----------------------|
 | MiniMax M2.5 | ~$0.012 | ~$3.7 |
-| Nova 2 Lite | ~$0.033 | ~$9.9 |
+| Nova 2 Lite | ~$0.015 | ~$4.4 |
 | GLM-5 | ~$0.041 | ~$12.3 |
 
 **AgentCore Infrastructure Cost**
@@ -120,7 +120,7 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 | Model | Model Cost | Infrastructure | Total |
 |-------|-----------|---------------|-------|
 | MiniMax M2.5 | ~$3.7 | < $4 | **< $8** |
-| Nova 2 Lite | ~$9.9 | < $4 | **< $14** |
+| Nova 2 Lite | ~$4.4 | < $4 | **< $9** |
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
 > **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova 2 Lite supports image input.
