@@ -52,8 +52,8 @@ Click the button and fill in the parameters. The stack creates:
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | Model ID | Pre-filled GLM-5 (Best Performance) | Nova 2 Lite, GLM-5, MiniMax M2.5 (only Nova 2 Lite supports image input) |
-| Enable Memory | Pre-filled | `true` for multi-turn memory, `false` for stateless |
-| Memory Expiry Days | Pre-filled | Memory expiry in days (7-365) |
+| Enable Memory | Pre-filled true | `true` for multi-turn memory, `false` for stateless |
+| Memory Expiry Days | Pre-filled 30 days | Memory expiry in days (7-365) |
 | Feishu App ID | **Required** | Feishu app credentials |
 | Feishu App Secret | **Required** | Feishu app credentials |
 | Feishu Verification Token | **Required** | Feishu webhook verification token (Open Platform → Events & Callbacks → Encryption Strategy) |
@@ -78,26 +78,15 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 
 ## Architecture
 
-```
-AgentCore Runtime (Docker Container)
-        │
-        └── Agent (Amazon Bedrock Model) → MCPClient
-                                     │
-                          AgentCore Gateway (MCP endpoint + Cognito Auth)
-                                     │
-                    ┌────────────────┼─────────────┐────────────┐
-                    │                │             │            │
-              Global Knowledge  China Knowledge  Pricing  Customer Stories
-                (Lambda)          (Lambda)       (Lambda)    (Lambda)
-```
+<img src="aws-techbot-architecture-diagram" alt="diagram">
 
 ## Model Pricing
 
-| Model | Input (per 1M tokens) | Output (per 1M tokens) | Image Input |
-|-------|----------------------|----------------------|-------------|
-| Nova 2 Lite | $0.80 | $3.20 | Yes |
-| MiniMax M2.5 | $0.30 | $1.20 | No |
-| GLM-5 (Zhipu AI) | $1.00 | $3.20 | No |
+| Model | Input (per 1M tokens) | Output (per 1M tokens) | Image Input | Characters |
+|-------|----------------------|----------------------|-------------|-------|
+| Nova 2 Lite | $0.33 | $2.75 | Yes | Support images input |
+| MiniMax M2.5 | $0.30 | $1.20 | No | Best cost performance |
+| GLM-5 (Zhipu AI) | $1.00 | $3.20 | No | Best answer quality |
 
 ## Cost Estimation
 

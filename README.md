@@ -51,8 +51,8 @@
 | 参数 | 是否必填 | 说明 |
 |------|----------|------|
 | Model ID | 已预填 GLM-5（效果最好） | 可选 Nova 2 Lite、GLM-5、MiniMax M2.5（仅 Nova 2 Lite 支持图片输入） |
-| Enable Memory | 已预填 | `true` 开启多轮记忆，`false` 无状态 |
-| Memory Expiry Days | 已预填 | 记忆过期天数（7-365） |
+| Enable Memory | 已预填 true | `true` 开启多轮记忆，`false` 无状态 |
+| Memory Expiry Days | 已预填 30天 | 记忆过期天数（7-365） |
 | Feishu App ID | **必填** | 飞书应用凭证 |
 | Feishu App Secret | **必填** | 飞书应用凭证 |
 | Feishu Verification Token | **必填** | 飞书 Webhook 验证令牌（开放平台 → 事件与回调 → 加密策略） |
@@ -77,26 +77,15 @@
 
 ## 架构
 
-```
-AgentCore Runtime (Docker 容器)
-        │
-        └── Agent (Amazon Bedrock 模型) → MCPClient
-                                     │
-                          AgentCore Gateway (MCP endpoint + Cognito 认证)
-                                     │
-                    ┌────────────────┼─────────────┐────────────┐
-                    │                │             │            │
-              Global Knowledge  China Knowledge  Pricing  Customer Stories
-                (Lambda)          (Lambda)       (Lambda)    (Lambda)
-```
+<img src="aws-techbot-architecture-diagram" alt="架构图">
 
 ## 模型定价
 
-| 模型 | 输入 (per 1M tokens) | 输出 (per 1M tokens) | 图片输入 |
-|------|---------------------|---------------------|---------|
-| Nova 2 Lite | $0.80 | $3.20 | ✅ |
-| MiniMax M2.5 | $0.30 | $1.20 | ❌ |
-| GLM-5 (Zhipu AI) | $1.00 | $3.20 | ❌ |
+| 模型 | 输入 (per 1M tokens) | 输出 (per 1M tokens) | 图片输入 | 特点 |
+|------|---------------------|---------------------|---------|------|
+| Nova 2 Lite | $0.33 | $2.75 | ✅ | 支持图片输入 |
+| MiniMax M2.5 | $0.30 | $1.20 | ❌ | 性价比高 |
+| GLM-5 (Zhipu AI) | $1.00 | $3.20 | ❌ | 最佳效果 |
 
 ## 成本估算
 > **💡 几乎所有费用均为按需计费（Pay-as-you-go），不使用不产生任何费用，无预付、无最低消费。**
