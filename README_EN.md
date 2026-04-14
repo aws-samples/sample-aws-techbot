@@ -164,6 +164,11 @@ aws bedrock-agentcore-control update-agent-runtime \
 
 > The Runtime ID can be found in CloudFormation Outputs.
 
+## Cleanup
+
+To remove all deployed resources, go to the [AWS CloudFormation console](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks), select the **TechBot** stack, and click **Delete**. All associated resources (Runtime, Gateway, Lambda, Cognito, Memory,
+etc.) will be automatically removed.
+
 ## Disclaimer
 
 This is sample code for demonstration purposes only. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before deployment. Deploying this solution may incur AWS charges.

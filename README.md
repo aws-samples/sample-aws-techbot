@@ -162,6 +162,10 @@ aws bedrock-agentcore-control update-agent-runtime \
 
 > Runtime ID 可在 CloudFormation Outputs 中找到。
 
+## 清除资源
+
+如需删除所有已部署的资源，进入 [AWS CloudFormation 控制台](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks)，找到**TechBot** 堆栈，点击 **Delete** 即可。所有关联资源（Runtime、Gateway、Lambda、Cognito、Memory 等）将自动删除。
+
 ## Disclaimer
 
 This is sample code for demonstration purposes only. You should work with your security and legal teams to meet your organizational security, regulatory, and compliance requirements before deployment. Deploying this solution may incur AWS charges.
