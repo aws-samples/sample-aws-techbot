@@ -28,3 +28,5 @@ uv.lock
 
 # threatmodel
 .threatmodel/
+threat-model.json
+threat-model.md
