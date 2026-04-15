@@ -81,7 +81,7 @@
 
 ## ⏸️ 部署 CloudFormation
 
-飞书应用已准备就绪，现在请返回 [README — 一键部署 CloudFormation](../README.md#一键部署-cloudformation)，使用刚才获取的 App ID 和 App Secret 完成堆栈部署。
+飞书应用已准备就绪，现在请返回 [README — 一键部署 CloudFormation](../README.md#一键部署-cloudformation)，使用刚才获取的 App ID， App Secret 和 Verification Token 完成堆栈部署。
 
 部署完成后，从 CloudFormation Outputs 中复制 **FeishuEventSubscriptionUrl**，然后继续下面的步骤。
 
