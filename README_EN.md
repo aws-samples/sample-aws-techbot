@@ -86,7 +86,9 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 |-------|----------------------|----------------------|-------------|-------|
 | Nova 2 Lite | $0.33 | $2.75 | Yes | Support images input |
 | MiniMax M2.5 | $0.30 | $1.20 | No | Best cost performance |
-| GLM-5 (Zhipu AI) | $1.00 | $3.20 | No | Best answer quality |
+| GLM-5 (Zhipu AI) | $1.00 | $3.20 | No | Best answer quality (Recommended) |
+
+> **Model Selection Guide:** Agent capability ranking: GLM-5 > MiniMax M2.5 > Nova 2 Lite. **GLM-5 is recommended** for the best experience — it provides the most detailed, well-structured, and easy-to-understand answers. MiniMax M2.5 offers decent quality at a lower cost. Nova 2 Lite is the only model supporting image input, but may occasionally fail on complex queries or return incomplete information.
 
 ## Cost Estimation
 

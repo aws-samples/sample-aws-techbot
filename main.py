@@ -170,6 +170,19 @@ async def invoke(payload):
             callback_handler=PrintingCallbackHandler(),
         )
 
+        # Limit tool calls to prevent infinite loops
+        tool_call_count = {"n": 0}
+
+        from strands.hooks import AfterToolCallEvent
+
+        def check_tool_limit(event: AfterToolCallEvent):
+            tool_call_count["n"] += 1
+            if tool_call_count["n"] >= 20:
+                logger.warning(f"⚠️ Tool call limit reached (20)")
+                raise RuntimeError("工具调用次数超过上限（20次），已强制停止。请简化问题后重试。")
+
+        agent.hooks.add_callback(AfterToolCallEvent, check_tool_limit)
+
         healthy_status.value = "HealthyBusy"
         logger.info(f"🚀 Agent job starts | actor={actor_id} session={session_id}")
 
@@ -208,7 +221,19 @@ async def invoke(payload):
             logger.exception("Agent invoke failed")
             final_text = f"发生错误：{str(e)}"
 
-        # final_text = format_final_text(final_text)
+        # Token usage logging
+        try:
+            metrics = getattr(agent, "event_loop_metrics", None)
+            if metrics and hasattr(metrics, "accumulated_usage"):
+                usage = metrics.accumulated_usage
+                input_t = usage.get("inputTokens", 0) if isinstance(usage, dict) else getattr(usage, "inputTokens", 0)
+                output_t = usage.get("outputTokens", 0) if isinstance(usage, dict) else getattr(usage, "outputTokens", 0)
+                total_t = usage.get("totalTokens", 0) if isinstance(usage, dict) else getattr(usage, "totalTokens", 0)
+                logger.info(f"📊 Token usage | input={input_t} output={output_t} total={total_t}")
+            else:
+                logger.info("📊 Token usage | metrics not available")
+        except Exception as e:
+            logger.warning(f"📊 Token usage | failed to read metrics: {e}")
 
         healthy_status.value = "Healthy"
         logger.info("agent job ends")
