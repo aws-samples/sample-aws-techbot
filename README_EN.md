@@ -71,7 +71,7 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 3. **Publish App** — Create a version and submit for approval
 4. **Add to Group** — Add the bot to a Feishu group
 
-> See the [Feishu Bot Setup Guide](docs/feishu-setup-zh.md) (Steps 6-9) for detailed instructions
+> See the [Feishu Bot Setup Guide](docs/feishu-setup-zh.md#第六步配置事件订阅) (Steps 6-9) for detailed instructions
 
 ### Done!
 > See the [Usage Guide](docs/usage-guide-zh.md) for features and examples
