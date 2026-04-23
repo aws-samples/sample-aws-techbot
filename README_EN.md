@@ -17,6 +17,7 @@ Tools are managed through AgentCore Gateway — the Agent automatically discover
 - **Configuration & Tutorials** — Look up configuration steps, tutorials, and sample code for AWS services
 - **Cost Estimation** — Real-time pricing queries for both AWS Global and China regions
 - **Troubleshooting** — Quickly find troubleshooting guides, quota limits, error codes, and operational SOPs
+- **Kiro Knowledge** — Query documentation about Kiro, including features, setup, specs, hooks, steering, and MCP
 
 ## Deployment
 
@@ -40,7 +41,7 @@ Before deploying, create an app on the Feishu Open Platform to get the App ID an
 
 Click the button and fill in the parameters. The stack creates:
 - **AgentCore Gateway** — Unified MCP tool endpoint + Cognito auth
-- **Gateway Targets** — 4 Lambdas (Global Knowledge, China Knowledge, Pricing, Customer Stories)
+- **Gateway Targets** — 5 Lambdas (Global Knowledge, China Knowledge, Pricing, Customer Stories, Kiro Knowledge)
 - **AgentCore Runtime** — Runs the TechBot container
 - **AgentCore Memory** (optional) — Multi-turn conversation memory
 - **API Gateway** — `/chat` POST endpoint for Feishu webhook

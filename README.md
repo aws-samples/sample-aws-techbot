@@ -17,6 +17,7 @@
 - **配置方法与教程查询** — 查询 AWS 服务的配置步骤、操作教程和示例代码，降低上手门槛
 - **成本估算** — 实时查询 AWS 全球和中国区域的服务定价，辅助架构选型和成本优化决策
 - **故障排查与运维支持** — 快速检索 AWS 服务的故障排查指南、配额限制、错误码说明和运维 SOP，缩短问题定位和恢复时间
+- **Kiro 知识查询** — 查询 Kiro 的功能、配置、Specs、Hooks、Steering 和 MCP 等相关文档
 
 ## 部署
 
@@ -39,7 +40,7 @@
 
 点击按钮，填写参数后部署。堆栈会创建：
 - **AgentCore Gateway** — 统一 MCP 工具入口 + Cognito 认证
-- **Gateway Targets** — 4 个 Lambda（Global Knowledge、China Knowledge、Pricing、Customer Stories）
+- **Gateway Targets** — 5 个 Lambda（Global Knowledge、China Knowledge、Pricing、Customer Stories、Kiro Knowledge）
 - **AgentCore Runtime** — 运行 TechBot 容器
 - **AgentCore Memory**（可选）— 多轮对话记忆
 - **API Gateway** — `/chat` POST 端点，用于飞书 webhook
