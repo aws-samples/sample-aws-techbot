@@ -97,17 +97,14 @@ Mappings:
   ArtifactBucket:
     us-west-2:
       Name: haomiaoj-yuzeli-aws-techbot-us-west-2
-    us-east-1:
-      Name: haomiaoj-yuzeli-aws-techbot-us-east-1
 
 Rules:
   RegionCheck:
     Assertions:
       - Assert: !Contains
-          - - us-east-1
-            - us-west-2
+          - - us-west-2
           - !Ref AWS::Region
-        AssertDescription: This stack can only be deployed in us-east-1 or us-west-2
+        AssertDescription: This stack can only be deployed in us-west-2
 
 Conditions:
   CreateMemory: !Equals [!Ref EnableMemory, 'true']
@@ -378,6 +375,7 @@ Resources:
                   - !GetAtt ChinaKnowledgeFunction.Arn
                   - !GetAtt CustomerStoriesFunction.Arn
                   - !GetAtt PricingFunction.Arn
+                  - !GetAtt KiroKnowledgeFunction.Arn
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -838,6 +836,128 @@ Resources:
                         Description: Array of service configurations for cost calculation
                     Required:
                       - services
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
+
+  # =========================
+  # Gateway Target: Kiro Knowledge
+  # =========================
+  KiroKnowledgeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-kiro-knowledge-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  KiroKnowledgeLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: !Sub ${ProjectName}-kiro-knowledge-deps
+      Description: Dependencies for kiro-knowledge gateway target
+      CompatibleRuntimes:
+        - python3.12
+      CompatibleArchitectures:
+        - arm64
+      Content:
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Key: kiro-knowledge-layer.zip
+
+  KiroKnowledgeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-kiro-knowledge
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Key: kiro-knowledge-code.zip
+      Role: !GetAtt KiroKnowledgeFunctionRole.Arn
+      Timeout: 120
+      MemorySize: 256
+      Layers:
+        - !Ref KiroKnowledgeLayer
+
+  KiroKnowledgeTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !GetAtt AgentCoreGateway.GatewayIdentifier
+      Name: TechbotKiroKnowledge
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !GetAtt KiroKnowledgeFunction.Arn
+            ToolSchema:
+              InlinePayload:
+                - Name: kiro_search
+                  Description: >-
+                    Search Kiro documentation across both kiro.dev (official English docs) and
+                    Book of Kiro (community Chinese docs) in parallel. Use keyword_en to search
+                    the official English documentation via Algolia, and keyword_zh to search the
+                    community Chinese documentation by crawling. It will return search results
+                    with referenced urls from both sources. You must include the referenced urls
+                    at the end of your response in the given <> format.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      keyword_en:
+                        Type: string
+                        Description: English keyword to search kiro.dev official documentation
+                      keyword_zh:
+                        Type: string
+                        Description: >-
+                          Keyword to search Book of Kiro community documentation (Chinese site).
+                          Use Chinese for general terms, but keep technical terms in English
+                          (e.g. MCP, hook, spec, steering, agent)
+                      original_query:
+                        Type: string
+                        Description: >-
+                          Original query of the user (should match exactly the same as the
+                          original user query including all characters and language)
+                      limit:
+                        Type: integer
+                        Description: Maximum number of results to return per source (default 10)
+                    Required:
+                      - keyword_en
+                      - keyword_zh
+                      - original_query
+                - Name: kiro_read
+                  Description: >-
+                    Fetch and read the content of a Kiro documentation page. Supports both
+                    kiro.dev (official docs, Next.js SSR) and kiro-community.github.io/book-of-kiro
+                    (community docs, static HTML). Use this tool to get the full content of a page
+                    returned by kiro_search. For long pages, use start_index and max_length to
+                    paginate through the content.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      url:
+                        Type: string
+                        Description: >-
+                          URL of the Kiro documentation page to read
+                          (must be from kiro.dev or kiro-community.github.io/book-of-kiro)
+                      original_query:
+                        Type: string
+                        Description: >-
+                          Original query of the user (should match exactly the same as the
+                          original user query including all characters and language)
+                      start_index:
+                        Type: integer
+                        Description: Character offset to start reading from, for pagination (default 0)
+                      max_length:
+                        Type: integer
+                        Description: Maximum number of characters to return (default 5000)
+                    Required:
+                      - url
+                      - original_query
       CredentialProviderConfigurations:
         - CredentialProviderType: GATEWAY_IAM_ROLE
 
