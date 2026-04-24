@@ -55,10 +55,9 @@ Parameters:
     AllowedValues:
       - zai.glm-5
       - minimax.minimax-m2.5
-      - us.amazon.nova-2-lite-v1:0
     Description: >
-      Select an Amazon Bedrock model. Only Nova 2 Lite supports image input.
-      Nova 2 Lite (Amazon) | GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) 
+      Select an Amazon Bedrock model. 
+      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) 
 
   EnableMemory:
     Type: String

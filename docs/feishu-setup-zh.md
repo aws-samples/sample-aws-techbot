@@ -173,6 +173,3 @@
 - 确认 CloudFormation 参数中的 Feishu App ID 和 App Secret 填写正确
 - 确保 AgentCore Runtime 正在运行（在 Bedrock 控制台查看运行状态）
 
-**图片无法处理**
-- 确保已添加并审批 `im:resource` 权限
-- 单张图片不能超过 5MB

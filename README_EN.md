@@ -52,7 +52,7 @@ Click the button and fill in the parameters. The stack creates:
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| Model ID | Pre-filled GLM-5 (Best Performance) | Nova 2 Lite, GLM-5, MiniMax M2.5 (only Nova 2 Lite supports image input) |
+| Model ID | Pre-filled GLM-5 (Best Performance) | GLM-5, MiniMax M2.5 |
 | Enable Memory | Pre-filled true | `true` for multi-turn memory, `false` for stateless |
 | Memory Expiry Days | Pre-filled 30 days | Memory expiry in days (7-365) |
 | Feishu App ID | **Required** | Feishu app credentials |
@@ -85,14 +85,12 @@ After the stack is deployed, copy **FeishuEventSubscriptionUrl** from Outputs an
 
 | Model | Input (per 1M tokens) | Output (per 1M tokens) | Image Input | Characters |
 |-------|----------------------|----------------------|-------------|-------|
-| Nova 2 Lite | $0.33 | $2.75 | Yes | Support images input |
 | MiniMax M2.5 | $0.30 | $1.20 | No | Best cost performance |
 | GLM-5 (Zhipu AI) | $1.00 | $3.20 | No | Best answer quality (Recommended) |
 
 > **Model Selection Guide:**
 > - **GLM-5 (Recommended)** — Most detailed and clear answers, strongest tool-calling ability, best overall experience
 > - **MiniMax M2.5** — Good answer quality at the lowest price, ideal for cost-sensitive use cases
-> - **Nova 2 Lite** — The only model supporting image input, but may occasionally fail or return incomplete answers on complex queries (e.g., multi-step pricing lookups)
 
 ## Cost Estimation
 
@@ -107,7 +105,6 @@ Based on real-world testing (documentation queries, pricing lookups, China regio
 | Model | Per Query (avg) | Monthly (300 queries) |
 |-------|-----------------|-----------------------|
 | MiniMax M2.5 | ~$0.012 | ~$3.7 |
-| Nova 2 Lite | ~$0.015 | ~$4.4 |
 | GLM-5 | ~$0.041 | ~$12.3 |
 
 **AgentCore Infrastructure Cost**
@@ -126,10 +123,9 @@ Each question triggers 1 Runtime invocation and ~5 Gateway API calls on average.
 | Model | Model Cost | Infrastructure | Total |
 |-------|-----------|---------------|-------|
 | MiniMax M2.5 | ~$3.7 | < $4 | **< $8** |
-| Nova 2 Lite | ~$4.4 | < $4 | **< $9** |
 | GLM-5 | ~$12.3 | < $4 | **< $17** |
 
-> **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. Only Nova 2 Lite supports image input.
+> **All services are pay-as-you-go — no cost when idle.** Actual costs vary based on query complexity (number of tool calls, response time) and Memory settings. 
 
 
 ## Customization
