@@ -36,7 +36,7 @@
 
 | 区域 | 部署 |
 |------|------|
-| 美西 (Oregon) | [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://haomiaoj-yuzeli-aws-techbot-us-west-2.s3.us-west-2.amazonaws.com/template.yaml&stackName=TechBot) |
+| 美西 (Oregon) | [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://haomiaoj-yuzeli-aws-techbot-oregon.s3.us-west-2.amazonaws.com/template.yaml&stackName=TechBot) |
 
 点击按钮，填写参数后部署。堆栈会创建：
 - **AgentCore Gateway** — 统一 MCP 工具入口 + Cognito 认证

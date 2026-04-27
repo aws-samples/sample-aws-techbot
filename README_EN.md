@@ -37,7 +37,7 @@ Before deploying, create an app on the Feishu Open Platform to get the App ID an
 
 | Region | Deploy |
 |--------|--------|
-| US West (Oregon) | [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://haomiaoj-yuzeli-aws-techbot-us-west-2.s3.us-west-2.amazonaws.com/template.yaml&stackName=TechBot) |
+| US West (Oregon) | [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://haomiaoj-yuzeli-aws-techbot-oregon.s3.us-west-2.amazonaws.com/template.yaml&stackName=TechBot) |
 
 Click the button and fill in the parameters. The stack creates:
 - **AgentCore Gateway** — Unified MCP tool endpoint + Cognito auth

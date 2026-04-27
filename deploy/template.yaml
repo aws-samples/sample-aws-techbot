@@ -95,7 +95,7 @@ Parameters:
 Mappings:
   ArtifactBucket:
     us-west-2:
-      Name: haomiaoj-yuzeli-aws-techbot-us-west-2
+      Name: haomiaoj-yuzeli-aws-techbot-oregon
 
 Rules:
   RegionCheck:
@@ -280,15 +280,6 @@ Resources:
             Principal:
               Service: bedrock-agentcore.amazonaws.com
             Action: sts:AssumeRole
-      Policies:
-        - PolicyName: MemoryPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - bedrock:InvokeModel
-                Resource: '*'
 
   AgentCoreMemory:
     Type: AWS::BedrockAgentCore::Memory
@@ -298,15 +289,7 @@ Resources:
       Description: !Sub ${ProjectName} multi-turn conversation memory
       EventExpiryDuration: !Ref MemoryExpiryDays
       MemoryExecutionRoleArn: !GetAtt AgentCoreMemoryRole.Arn
-      MemoryStrategies:
-        - SemanticMemoryStrategy:
-            Name: !Sub ${ProjectName}_semantic
-            Namespaces:
-              - Default
-        - SummaryMemoryStrategy:
-            Name: !Sub ${ProjectName}_summary
-            Namespaces:
-              - '{sessionId}'
+
 
   # =========================
   # Cognito (Gateway auth)
