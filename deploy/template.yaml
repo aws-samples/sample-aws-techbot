@@ -80,14 +80,17 @@ Parameters:
 
   AppId:
     Type: String
+    MinLength: 1
     Description: Feishu App ID for bot integration
 
   AppSecret:
     Type: String
+    MinLength: 1
     Description: Feishu App Secret
 
   FeishuVerificationToken:
     Type: String
+    MinLength: 1
     Description: >
       Feishu Verification Token for webhook request validation.
       Found in Feishu Open Platform → Events & Callbacks → Encryption Strategy.
