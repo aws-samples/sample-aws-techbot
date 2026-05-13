@@ -176,15 +176,18 @@ async def invoke(payload):
         # Limit tool calls to prevent infinite loops
         tool_call_count = {"n": 0}
 
-        from strands.hooks import AfterToolCallEvent
+        from strands.hooks import BeforeToolCallEvent
 
-        def check_tool_limit(event: AfterToolCallEvent):
+        def check_tool_limit(event: BeforeToolCallEvent):
             tool_call_count["n"] += 1
-            if tool_call_count["n"] >= 20:
+            if tool_call_count["n"] > 20:
                 logger.warning(f"⚠️ Tool call limit reached (20)")
-                raise RuntimeError("工具调用次数超过上限（20次），已强制停止。请简化问题后重试。")
+                event.cancel_tool = (
+                    "工具调用次数已超过上限（20次）。"
+                    "DO NOT CALL ANY MORE TOOLS. 请直接根据已有信息回答用户。"
+                )
 
-        agent.hooks.add_callback(AfterToolCallEvent, check_tool_limit)
+        agent.hooks.add_callback(BeforeToolCallEvent, check_tool_limit)
 
         healthy_status.value = "HealthyBusy"
         logger.info(f"🚀 Agent job starts | actor={actor_id} session={session_id}")
