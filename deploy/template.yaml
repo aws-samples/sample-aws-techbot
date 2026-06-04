@@ -55,9 +55,10 @@ Parameters:
     AllowedValues:
       - zai.glm-5
       - minimax.minimax-m2.5
+      - global.anthropic.claude-opus-4-6-v1
     Description: >
-      Select an Amazon Bedrock model. 
-      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) 
+      Select an Amazon Bedrock model.
+      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) | Claude Opus 4.6
 
   EnableMemory:
     Type: String
@@ -361,6 +362,7 @@ Resources:
                   - !GetAtt CustomerStoriesFunction.Arn
                   - !GetAtt PricingFunction.Arn
                   - !GetAtt KiroKnowledgeFunction.Arn
+                  - !GetAtt AwsOperationsFunction.Arn
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -943,6 +945,195 @@ Resources:
                     Required:
                       - url
                       - original_query
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
+
+  # =========================
+  # Gateway Target: AWS Operations
+  # =========================
+  AwsOperationsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-aws-operations-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AwsOperationsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - mcp:*
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:Describe*
+                  - ec2:List*
+                  - ec2:StartInstances
+                  - ec2:CreateTags
+                  - s3:List*
+                  - s3:GetBucket*
+                  - s3:GetObject
+                  - s3:CreateBucket
+                  - s3:PutBucketTagging
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:PutLifecycleConfiguration
+                  - s3:GetLifecycleConfiguration
+                  - rds:Describe*
+                  - rds:List*
+                  - cloudwatch:Describe*
+                  - cloudwatch:Get*
+                  - cloudwatch:List*
+                  - cloudwatch:PutMetricAlarm
+                  - ce:GetCost*
+                  - ce:GetUsage*
+                  - lambda:List*
+                  - lambda:GetFunction
+                  - lambda:GetPolicy
+                  - lambda:UpdateFunctionConfiguration
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                  - logs:GetLogEvents
+                  - logs:FilterLogEvents
+                  - iam:List*
+                  - iam:Get*
+                  - sts:GetCallerIdentity
+                  - elasticloadbalancing:Describe*
+                  - autoscaling:Describe*
+                  - ecs:Describe*
+                  - ecs:List*
+                  - eks:Describe*
+                  - eks:List*
+                  - dynamodb:Describe*
+                  - dynamodb:List*
+                  - sns:List*
+                  - sns:Get*
+                  - sqs:List*
+                  - sqs:Get*
+                  - route53:List*
+                  - route53:Get*
+                  - cloudformation:Describe*
+                  - cloudformation:List*
+                  - cloudformation:Get*
+                  - apigateway:GET
+                Resource: '*'
+
+  AwsOperationsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: !Sub ${ProjectName}-aws-operations-deps
+      Description: Dependencies for aws-operations gateway target (mcp-proxy-for-aws)
+      CompatibleRuntimes:
+        - python3.12
+      CompatibleArchitectures:
+        - arm64
+      Content:
+        S3Bucket: !Sub techbot-artifacts-${AWS::AccountId}
+        S3Key: aws-operations-layer.zip
+
+  AwsOperationsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-aws-operations
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !Sub techbot-artifacts-${AWS::AccountId}
+        S3Key: aws-operations-code.zip
+      Role: !GetAtt AwsOperationsFunctionRole.Arn
+      Timeout: 300
+      MemorySize: 512
+      Layers:
+        - !Ref AwsOperationsLayer
+      Environment:
+        Variables:
+          AWS_REGION_OVERRIDE: !Ref AWS::Region
+          TOOLKIT_MCP_URL: "https://aws-mcp.us-east-1.api.aws/mcp"
+
+  AwsOperationsTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !GetAtt AgentCoreGateway.GatewayIdentifier
+      Name: TechbotOperations
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !GetAtt AwsOperationsFunction.Arn
+            ToolSchema:
+              InlinePayload:
+                - Name: aws___call_aws
+                  Description: >-
+                    Execute authenticated AWS API calls using CLI command syntax.
+                    Supports all AWS services. Use for querying, creating, or modifying resources.
+                    NEVER use for delete or terminate operations.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      cli_command:
+                        Type: string
+                        Description: >-
+                          AWS CLI command to execute (e.g. "aws ec2 describe-instances --region us-west-2",
+                          "aws s3 ls", "aws lambda list-functions --region us-west-2")
+                    Required:
+                      - cli_command
+                - Name: aws___suggest_aws_commands
+                  Description: >-
+                    Get descriptions and syntax help for relevant AWS APIs.
+                    Use when unsure about the correct CLI command or parameters.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      query:
+                        Type: string
+                        Description: Description of what you want to do (e.g. list all EC2 instances)
+                    Required:
+                      - query
+                - Name: aws___run_script
+                  Description: >-
+                    Execute Python code with AWS API access for complex multi-step operations.
+                    Use for tasks that involve listing resources and checking properties,
+                    parallel API calls, or cross-service checks.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      code:
+                        Type: string
+                        Description: Python code to execute
+                    Required:
+                      - code
+                - Name: aws___retrieve_skill
+                  Description: >-
+                    Retrieve an AWS agent skill — structured step-by-step operation guides
+                    with best practices, decision frameworks, and CLI commands for specific AWS tasks.
+                    MUST call search_documentation first to discover the skill_name.
+                    Use when the user asks to perform a complex AWS operation (create resources,
+                    configure security, set up monitoring, etc.) to get official verified procedures.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      skill_name:
+                        Type: string
+                        Description: >-
+                          Exact skill name from search_documentation results.
+                          Must be discovered via search first, never guessed.
+                      file:
+                        Type: string
+                        Description: >-
+                          Optional specific file within the skill (e.g. references/architecture.md).
+                          Omit to get the main SKILL.md.
+                    Required:
+                      - skill_name
       CredentialProviderConfigurations:
         - CredentialProviderType: GATEWAY_IAM_ROLE
 

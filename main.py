@@ -72,12 +72,33 @@ Your Available Tools:
 5. **Kiro Knowledge** — For questions about Kiro (AWS's AI-powered IDE and CLI), including features, setup, specs, hooks, steering, and MCP
    Tools: `TechbotKiroKnowledge___kiro_search`, `TechbotKiroKnowledge___kiro_read`
 
+6. **AWS Account Operations** — Query, create, and modify resources in the user's AWS account
+   Tools: `aws___call_aws`, `aws___suggest_aws_commands`, `aws___run_script`, `aws___retrieve_skill`
+
+   Use cases: list EC2 instances, view S3 buckets, check CloudWatch alarms, query cost/usage, list Lambda functions, create S3 buckets, start/stop EC2 instances, modify resource tags and configurations.
+
+   Rules:
+   - Read operations (Describe*, List*, Get*) can be executed freely
+   - Create and modify operations (Create*, Put*, Start*, Stop*, Tag*, Update*) are allowed
+   - NEVER execute delete or destructive operations (Delete*, Terminate*, Remove*, Destroy*)
+   - If user requests a destructive operation, politely explain that delete operations are not supported for safety reasons
+   - Use `aws___suggest_aws_commands` first if unsure about the correct API syntax
+   - Always specify the region parameter when calling AWS APIs
+   - When creating or modifying resources, confirm the action with the user before executing
+   - For complex multi-step operations where you are unsure about best practices, use search_documentation to find a skill, then retrieve_skill to get the step-by-step procedure
+   - For simple operations (listing resources, checking status, adding a tag, querying costs), execute directly
+   - If a tool call fails, do NOT give up. Try an alternative approach or answer based on information already gathered
+
 Efficiency Rules:
 - When answering simple questions, reply briefly but keep necessary details
 - When searching documentation/blogs, use the right AWS service name. If unsure, search with user terms directly instead of guessing.
 - Immediately stop when you have sufficient information to answer
 - User doesn't need to code directly, so don't search for unnecessary "additional/detailed information". Efficiency over comprehensiveness.
 - Answer directly - users will follow up if needed
+- Minimize tool calls: if you can answer from context or previous results, do not call tools again
+- IMPORTANT: Limit to 5 tool calls maximum per response. If the task needs more, summarize what you found so far and ask the user if they want you to continue.
+- ALWAYS prefer aws___run_script (write a Python script to do everything in one call) over multiple aws___call_aws calls. For example, to query costs by service, write one Python script that calls Cost Explorer API and formats the result, instead of calling aws___call_aws 10+ times.
+- Never call more than 2 tools for a simple factual question
 - When asked about a product/service and you're uncertain if it's an AWS service:
   - First use `TechbotGlobalKnowledge___aws___search_documentation` to verify if it exists in AWS
   - If found, proceed; if not, politely clarify you only assist with AWS questions
@@ -88,6 +109,7 @@ Output Requirements and Format:
 - DO NOT use any heading symbols (#, ##, ###, etc.)
 - Use bold text (**text**) for section titles
 - Maintain clean, compact and readable structure
+- Use at most 2 tables per response. If more data needs to be presented, use bullet lists instead of additional tables.
 - Match the user's language (English/Chinese)
 - When including code examples, use proper code fences with language specification
 - Include reference links at the end of responses for sources you cited. Each case study, doc page, or blog post mentioned should have its own link — avoid merging into one generic link.
@@ -108,6 +130,42 @@ IMPORTANT: Never output <thinking> tags or any internal reasoning blocks in your
 # =========================
 # 工具函数
 # =========================
+def fix_tool_use_result_mismatch(messages: list) -> list:
+    """Fix Memory-restored messages where toolResult/toolUse pairs are broken.
+
+    Handles:
+    1. toolResult in user message but previous assistant has no toolUse → remove toolResult
+    2. toolResult count exceeds toolUse count → keep only matching ones
+    3. user message with only toolResult and no preceding toolUse → remove entire message
+
+    See: https://github.com/strands-agents/sdk-python/issues/1111
+    """
+    for i, msg in enumerate(messages):
+        if msg.get("role") == "user":
+            has_tool_results = any("toolResult" in c for c in msg.get("content", []))
+            if not has_tool_results:
+                continue
+
+            # Find the preceding assistant message's toolUse IDs
+            tool_use_ids = set()
+            if i > 0:
+                prev_msg = messages[i - 1]
+                if prev_msg.get("role") == "assistant":
+                    tool_use_ids = {
+                        c["toolUse"]["toolUseId"]
+                        for c in prev_msg.get("content", [])
+                        if "toolUse" in c
+                    }
+
+            # Remove toolResults that don't have a matching toolUse
+            msg["content"] = [
+                c for c in msg.get("content", [])
+                if "toolResult" not in c or c["toolResult"].get("toolUseId") in tool_use_ids
+            ]
+
+    return [m for m in messages if m.get("content")]
+
+
 def extract_text_from_agent_message(message: dict) -> str:
     """Extract visible text blocks from agent response message."""
     if not message:
@@ -173,18 +231,25 @@ async def invoke(payload):
             callback_handler=PrintingCallbackHandler(),
         )
 
-        # Limit tool calls to prevent infinite loops
+        # Fix Memory-restored messages before each model call (after session_manager restores history)
+        from strands.hooks import BeforeToolCallEvent, BeforeModelCallEvent
+
+        def fix_history_before_model_call(event: BeforeModelCallEvent):
+            if agent.messages:
+                agent.messages = fix_tool_use_result_mismatch(agent.messages)
+
+        agent.hooks.add_callback(BeforeModelCallEvent, fix_history_before_model_call)
+
+        # Limit tool calls — use cancel_tool instead of RuntimeError to prevent memory corruption
         tool_call_count = {"n": 0}
 
-        from strands.hooks import AfterToolCallEvent
-
-        def check_tool_limit(event: AfterToolCallEvent):
+        def check_tool_limit(event: BeforeToolCallEvent):
             tool_call_count["n"] += 1
             if tool_call_count["n"] >= 20:
                 logger.warning(f"⚠️ Tool call limit reached (20)")
-                raise RuntimeError("工具调用次数超过上限（20次），已强制停止。请简化问题后重试。")
+                event.cancel_tool = "工具调用次数超过上限（20次），请用已有信息回答用户。"
 
-        agent.hooks.add_callback(AfterToolCallEvent, check_tool_limit)
+        agent.hooks.add_callback(BeforeToolCallEvent, check_tool_limit)
 
         healthy_status.value = "HealthyBusy"
         logger.info(f"🚀 Agent job starts | actor={actor_id} session={session_id}")

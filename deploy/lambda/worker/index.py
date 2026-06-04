@@ -90,7 +90,36 @@ def feishu_message_resource_to_base64(message_id: str, file_key: str, tenant_tok
     return {"format": fmt, "source": {"bytes": encoded}}
 
 
+def limit_tables(markdown: str, max_tables: int = 2) -> str:
+    """Convert excess tables to bullet lists to avoid Feishu card table limit."""
+    lines = markdown.split("\n")
+    table_count = 0
+    result = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # Detect table start (header row with |)
+        if "|" in line and i + 1 < len(lines) and re.match(r"^\s*\|[\s\-|]+\|\s*$", lines[i + 1]):
+            table_count += 1
+            if table_count <= max_tables:
+                result.append(line)
+            else:
+                # Convert this table to bullet list
+                headers = [h.strip() for h in line.split("|") if h.strip()]
+                i += 2  # skip header and separator
+                while i < len(lines) and "|" in lines[i] and lines[i].strip().startswith("|"):
+                    cells = [c.strip() for c in lines[i].split("|") if c.strip()]
+                    bullet = "- " + ", ".join(f"**{h}**: {c}" for h, c in zip(headers, cells) if c)
+                    result.append(bullet)
+                    i += 1
+                continue
+        result.append(line)
+        i += 1
+    return "\n".join(result)
+
+
 def build_card(markdown: str) -> str:
+    markdown = limit_tables(markdown)
     card_v2 = {
         "schema": "2.0",
         "config": {"update_multi": True},
@@ -177,7 +206,12 @@ def parse_event(event: dict):
 # AgentCore invocation
 # =========================
 def invoke_agentcore(payload: dict) -> str:
-    client = boto3.client("bedrock-agentcore", region_name=REGION)
+    from botocore.config import Config
+    client = boto3.client(
+        "bedrock-agentcore",
+        region_name=REGION,
+        config=Config(read_timeout=450, connect_timeout=10),
+    )
     response = client.invoke_agent_runtime(
         agentRuntimeArn=AGENT_RUNTIME_ARN,
         payload=json.dumps(payload, ensure_ascii=False),
