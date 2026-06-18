@@ -1,0 +1,4 @@
+mcp>=1.0.0
+run-mcp-servers-with-aws-lambda
+mcp-proxy-for-aws>=0.1.0
+aws-lambda-powertools>=2.0.0

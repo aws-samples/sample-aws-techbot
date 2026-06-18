@@ -56,8 +56,8 @@ Parameters:
       - zai.glm-5
       - minimax.minimax-m2.5
     Description: >
-      Select an Amazon Bedrock model. 
-      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) 
+      Select an Amazon Bedrock model.
+      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax)
 
   EnableMemory:
     Type: String
@@ -361,6 +361,7 @@ Resources:
                   - !GetAtt CustomerStoriesFunction.Arn
                   - !GetAtt PricingFunction.Arn
                   - !GetAtt KiroKnowledgeFunction.Arn
+                  - !GetAtt AwsOperationsFunction.Arn
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -947,6 +948,275 @@ Resources:
         - CredentialProviderType: GATEWAY_IAM_ROLE
 
   # =========================
+  # Gateway Target: AWS Operations
+  # =========================
+  AwsOperationsFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-aws-operations-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+      Policies:
+        - PolicyName: AwsOperationsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Broad write access for common services
+              - Effect: Allow
+                Action:
+                  - "ec2:*"
+                  - "s3:*"
+                  - "lambda:*"
+                  - "rds:*"
+                  - "ecs:*"
+                  - "eks:*"
+                  - "dynamodb:*"
+                  - "elasticloadbalancing:*"
+                  - "autoscaling:*"
+                  - "application-autoscaling:*"
+                  - "cloudwatch:*"
+                  - "logs:*"
+                  - "sns:*"
+                  - "sqs:*"
+                  - "cloudfront:*"
+                  - "ce:*"
+                  - "events:*"
+                  - "states:*"
+                  - "kinesis:*"
+                  - "firehose:*"
+                  - "elasticache:*"
+                  - "es:*"
+                  - "secretsmanager:*"
+                  - "ssm:*"
+                  - "acm:*"
+                  - "ecr:*"
+                  - "codebuild:*"
+                  - "codepipeline:*"
+                  - "bedrock:*"
+                  - "bedrock-agentcore:*"
+                  - "budgets:*"
+                  - "kms:Encrypt"
+                  - "kms:Decrypt"
+                  - "kms:GenerateDataKey"
+                  - "kms:CreateAlias"
+                  - "kms:CreateKey"
+                  - "sts:GetCallerIdentity"
+                  - "mcp:*"
+                Resource: '*'
+              # Deny destructive operations (all Allow services)
+              - Effect: Deny
+                Action:
+                  - "ec2:Delete*"
+                  - "ec2:Terminate*"
+                  - "s3:Delete*"
+                  - "lambda:Delete*"
+                  - "lambda:Remove*"
+                  - "rds:Delete*"
+                  - "ecs:Delete*"
+                  - "eks:Delete*"
+                  - "dynamodb:Delete*"
+                  - "elasticloadbalancing:Delete*"
+                  - "autoscaling:Delete*"
+                  - "autoscaling:Terminate*"
+                  - "application-autoscaling:Delete*"
+                  - "cloudwatch:Delete*"
+                  - "logs:Delete*"
+                  - "sns:Delete*"
+                  - "sns:Remove*"
+                  - "sqs:Delete*"
+                  - "cloudfront:Delete*"
+                  - "events:Delete*"
+                  - "events:Remove*"
+                  - "states:Delete*"
+                  - "kinesis:Delete*"
+                  - "kinesis:Remove*"
+                  - "firehose:Delete*"
+                  - "elasticache:Delete*"
+                  - "es:Delete*"
+                  - "secretsmanager:Delete*"
+                  - "secretsmanager:Remove*"
+                  - "ssm:Delete*"
+                  - "acm:Delete*"
+                  - "ecr:Delete*"
+                  - "codebuild:Delete*"
+                  - "codepipeline:Delete*"
+                  - "bedrock:Delete*"
+                  - "bedrock-agentcore:Delete*"
+                  - "budgets:Delete*"
+                  - "kms:Delete*"
+                  - "kms:ScheduleKeyDeletion"
+                Resource: '*'
+              # Deny high-risk non-delete operations
+              - Effect: Deny
+                Action:
+                  # Network / Security Group exposure
+                  - "ec2:AuthorizeSecurityGroupIngress"
+                  - "ec2:AuthorizeSecurityGroupEgress"
+                  - "ec2:RevokeSecurityGroup*"
+                  - "ec2:ModifyInstanceAttribute"
+                  - "ec2:ModifySnapshotAttribute"
+                  - "ec2:ModifyImageAttribute"
+                  # S3 public access
+                  - "s3:PutBucketPolicy"
+                  - "s3:PutBucketAcl"
+                  - "s3:PutPublicAccessBlock"
+                  - "s3:PutAccountPublicAccessBlock"
+                  - "s3:PutObjectAcl"
+                  # RDS public exposure
+                  - "rds:ModifyDBInstance"
+                  - "rds:ModifyDBCluster"
+                  - "rds:ModifyDBSnapshotAttribute"
+                  - "rds:ModifyDBClusterSnapshotAttribute"
+                  # DNS modification
+                  - "route53:ChangeResourceRecordSets"
+                  # IAM privilege escalation
+                  - "iam:Create*"
+                  - "iam:Put*"
+                  - "iam:Attach*"
+                  - "iam:Detach*"
+                  - "iam:Update*"
+                  - "iam:PassRole"
+                  - "iam:AddRoleToInstanceProfile"
+                  # KMS key management
+                  - "kms:DisableKey"
+                  - "kms:ScheduleKeyDeletion"
+                  - "kms:PutKeyPolicy"
+                  # Resource policy exposure (Palisade checks)
+                  - "sns:AddPermission"
+                  - "sqs:AddPermission"
+                  - "lambda:AddPermission"
+                  - "secretsmanager:PutResourcePolicy"
+                  - "ecr:SetRepositoryPolicy"
+                  - "es:UpdateElasticsearchDomainConfig"
+                  # Logging / audit trail tampering
+                  - "cloudtrail:StopLogging"
+                  - "cloudtrail:DeleteTrail"
+                  - "cloudtrail:UpdateTrail"
+                  - "config:StopConfigurationRecorder"
+                  - "config:DeleteConfigurationRecorder"
+                  # Organizations
+                  - "organizations:*"
+                Resource: '*'
+
+  AwsOperationsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: !Sub ${ProjectName}-aws-operations-deps
+      Description: Dependencies for aws-operations gateway target (mcp-proxy-for-aws)
+      CompatibleRuntimes:
+        - python3.12
+      CompatibleArchitectures:
+        - arm64
+      Content:
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Key: aws-operations-layer.zip
+
+  AwsOperationsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-aws-operations
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Key: aws-operations-code.zip
+      Role: !GetAtt AwsOperationsFunctionRole.Arn
+      Timeout: 300
+      MemorySize: 512
+      Layers:
+        - !Ref AwsOperationsLayer
+      Environment:
+        Variables:
+          AWS_REGION_OVERRIDE: !Ref AWS::Region
+          TOOLKIT_MCP_URL: "https://aws-mcp.us-east-1.api.aws/mcp"
+
+  AwsOperationsTarget:
+    Type: AWS::BedrockAgentCore::GatewayTarget
+    Properties:
+      GatewayIdentifier: !GetAtt AgentCoreGateway.GatewayIdentifier
+      Name: TechbotOperations
+      TargetConfiguration:
+        Mcp:
+          Lambda:
+            LambdaArn: !GetAtt AwsOperationsFunction.Arn
+            ToolSchema:
+              InlinePayload:
+                - Name: aws___call_aws
+                  Description: >-
+                    Execute authenticated AWS API calls using CLI command syntax.
+                    Supports all AWS services. Use for querying, creating, or modifying resources.
+                    NEVER use for delete or terminate operations.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      cli_command:
+                        Type: string
+                        Description: >-
+                          AWS CLI command to execute (e.g. "aws ec2 describe-instances --region us-west-2",
+                          "aws s3 ls", "aws lambda list-functions --region us-west-2")
+                    Required:
+                      - cli_command
+                - Name: aws___suggest_aws_commands
+                  Description: >-
+                    Get descriptions and syntax help for relevant AWS APIs.
+                    Use when unsure about the correct CLI command or parameters.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      query:
+                        Type: string
+                        Description: Description of what you want to do (e.g. list all EC2 instances)
+                    Required:
+                      - query
+                - Name: aws___run_script
+                  Description: >-
+                    Execute Python code with AWS API access for complex multi-step operations.
+                    Use for tasks that involve listing resources and checking properties,
+                    parallel API calls, or cross-service checks.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      code:
+                        Type: string
+                        Description: Python code to execute
+                    Required:
+                      - code
+                - Name: aws___retrieve_skill
+                  Description: >-
+                    Retrieve an AWS agent skill — structured step-by-step operation guides
+                    with best practices, decision frameworks, and CLI commands for specific AWS tasks.
+                    MUST call search_documentation first to discover the skill_name.
+                    Use when the user asks to perform a complex AWS operation (create resources,
+                    configure security, set up monitoring, etc.) to get official verified procedures.
+                  InputSchema:
+                    Type: object
+                    Properties:
+                      skill_name:
+                        Type: string
+                        Description: >-
+                          Exact skill name from search_documentation results.
+                          Must be discovered via search first, never guessed.
+                      file:
+                        Type: string
+                        Description: >-
+                          Optional specific file within the skill (e.g. references/architecture.md).
+                          Omit to get the main SKILL.md.
+                    Required:
+                      - skill_name
+      CredentialProviderConfigurations:
+        - CredentialProviderType: GATEWAY_IAM_ROLE
+
+  # =========================
   # AgentCore Runtime
   # =========================
   AgentCoreRuntimeRole:
@@ -1223,7 +1493,7 @@ Resources:
         S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
         S3Key: worker.zip
       Role: !GetAtt WorkerFunctionRole.Arn
-      Timeout: 900
+      Timeout: 400
       MemorySize: 512
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-requests:19
