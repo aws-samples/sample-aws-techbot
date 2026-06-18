@@ -55,10 +55,9 @@ Parameters:
     AllowedValues:
       - zai.glm-5
       - minimax.minimax-m2.5
-      - global.anthropic.claude-opus-4-6-v1
     Description: >
       Select an Amazon Bedrock model.
-      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax) | Claude Opus 4.6
+      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax)
 
   EnableMemory:
     Type: String
@@ -964,67 +963,147 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
       Policies:
         - PolicyName: AwsOperationsPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              # Broad write access for common services
               - Effect: Allow
                 Action:
-                  - mcp:*
+                  - "ec2:*"
+                  - "s3:*"
+                  - "lambda:*"
+                  - "rds:*"
+                  - "ecs:*"
+                  - "eks:*"
+                  - "dynamodb:*"
+                  - "elasticloadbalancing:*"
+                  - "autoscaling:*"
+                  - "application-autoscaling:*"
+                  - "cloudwatch:*"
+                  - "logs:*"
+                  - "sns:*"
+                  - "sqs:*"
+                  - "cloudfront:*"
+                  - "ce:*"
+                  - "events:*"
+                  - "states:*"
+                  - "kinesis:*"
+                  - "firehose:*"
+                  - "elasticache:*"
+                  - "es:*"
+                  - "secretsmanager:*"
+                  - "ssm:*"
+                  - "acm:*"
+                  - "ecr:*"
+                  - "codebuild:*"
+                  - "codepipeline:*"
+                  - "bedrock:*"
+                  - "bedrock-agentcore:*"
+                  - "budgets:*"
+                  - "kms:Encrypt"
+                  - "kms:Decrypt"
+                  - "kms:GenerateDataKey"
+                  - "kms:CreateAlias"
+                  - "kms:CreateKey"
+                  - "sts:GetCallerIdentity"
+                  - "mcp:*"
                 Resource: '*'
-              - Effect: Allow
+              # Deny destructive operations (all Allow services)
+              - Effect: Deny
                 Action:
-                  - ec2:Describe*
-                  - ec2:List*
-                  - ec2:StartInstances
-                  - ec2:CreateTags
-                  - s3:List*
-                  - s3:GetBucket*
-                  - s3:GetObject
-                  - s3:CreateBucket
-                  - s3:PutBucketTagging
-                  - s3:PutBucketPublicAccessBlock
-                  - s3:GetBucketPublicAccessBlock
-                  - s3:PutLifecycleConfiguration
-                  - s3:GetLifecycleConfiguration
-                  - rds:Describe*
-                  - rds:List*
-                  - cloudwatch:Describe*
-                  - cloudwatch:Get*
-                  - cloudwatch:List*
-                  - cloudwatch:PutMetricAlarm
-                  - ce:GetCost*
-                  - ce:GetUsage*
-                  - lambda:List*
-                  - lambda:GetFunction
-                  - lambda:GetPolicy
-                  - lambda:UpdateFunctionConfiguration
-                  - logs:DescribeLogGroups
-                  - logs:DescribeLogStreams
-                  - logs:GetLogEvents
-                  - logs:FilterLogEvents
-                  - iam:List*
-                  - iam:Get*
-                  - sts:GetCallerIdentity
-                  - elasticloadbalancing:Describe*
-                  - autoscaling:Describe*
-                  - ecs:Describe*
-                  - ecs:List*
-                  - eks:Describe*
-                  - eks:List*
-                  - dynamodb:Describe*
-                  - dynamodb:List*
-                  - sns:List*
-                  - sns:Get*
-                  - sqs:List*
-                  - sqs:Get*
-                  - route53:List*
-                  - route53:Get*
-                  - cloudformation:Describe*
-                  - cloudformation:List*
-                  - cloudformation:Get*
-                  - apigateway:GET
+                  - "ec2:Delete*"
+                  - "ec2:Terminate*"
+                  - "s3:Delete*"
+                  - "lambda:Delete*"
+                  - "lambda:Remove*"
+                  - "rds:Delete*"
+                  - "ecs:Delete*"
+                  - "eks:Delete*"
+                  - "dynamodb:Delete*"
+                  - "elasticloadbalancing:Delete*"
+                  - "autoscaling:Delete*"
+                  - "autoscaling:Terminate*"
+                  - "application-autoscaling:Delete*"
+                  - "cloudwatch:Delete*"
+                  - "logs:Delete*"
+                  - "sns:Delete*"
+                  - "sns:Remove*"
+                  - "sqs:Delete*"
+                  - "cloudfront:Delete*"
+                  - "events:Delete*"
+                  - "events:Remove*"
+                  - "states:Delete*"
+                  - "kinesis:Delete*"
+                  - "kinesis:Remove*"
+                  - "firehose:Delete*"
+                  - "elasticache:Delete*"
+                  - "es:Delete*"
+                  - "secretsmanager:Delete*"
+                  - "secretsmanager:Remove*"
+                  - "ssm:Delete*"
+                  - "acm:Delete*"
+                  - "ecr:Delete*"
+                  - "codebuild:Delete*"
+                  - "codepipeline:Delete*"
+                  - "bedrock:Delete*"
+                  - "bedrock-agentcore:Delete*"
+                  - "budgets:Delete*"
+                  - "kms:Delete*"
+                  - "kms:ScheduleKeyDeletion"
+                Resource: '*'
+              # Deny high-risk non-delete operations
+              - Effect: Deny
+                Action:
+                  # Network / Security Group exposure
+                  - "ec2:AuthorizeSecurityGroupIngress"
+                  - "ec2:AuthorizeSecurityGroupEgress"
+                  - "ec2:RevokeSecurityGroup*"
+                  - "ec2:ModifyInstanceAttribute"
+                  - "ec2:ModifySnapshotAttribute"
+                  - "ec2:ModifyImageAttribute"
+                  # S3 public access
+                  - "s3:PutBucketPolicy"
+                  - "s3:PutBucketAcl"
+                  - "s3:PutPublicAccessBlock"
+                  - "s3:PutAccountPublicAccessBlock"
+                  - "s3:PutObjectAcl"
+                  # RDS public exposure
+                  - "rds:ModifyDBInstance"
+                  - "rds:ModifyDBCluster"
+                  - "rds:ModifyDBSnapshotAttribute"
+                  - "rds:ModifyDBClusterSnapshotAttribute"
+                  # DNS modification
+                  - "route53:ChangeResourceRecordSets"
+                  # IAM privilege escalation
+                  - "iam:Create*"
+                  - "iam:Put*"
+                  - "iam:Attach*"
+                  - "iam:Detach*"
+                  - "iam:Update*"
+                  - "iam:PassRole"
+                  - "iam:AddRoleToInstanceProfile"
+                  # KMS key management
+                  - "kms:DisableKey"
+                  - "kms:ScheduleKeyDeletion"
+                  - "kms:PutKeyPolicy"
+                  # Resource policy exposure (Palisade checks)
+                  - "sns:AddPermission"
+                  - "sqs:AddPermission"
+                  - "lambda:AddPermission"
+                  - "secretsmanager:PutResourcePolicy"
+                  - "ecr:SetRepositoryPolicy"
+                  - "es:UpdateElasticsearchDomainConfig"
+                  # Logging / audit trail tampering
+                  - "cloudtrail:StopLogging"
+                  - "cloudtrail:DeleteTrail"
+                  - "cloudtrail:UpdateTrail"
+                  - "config:StopConfigurationRecorder"
+                  - "config:DeleteConfigurationRecorder"
+                  # Organizations
+                  - "organizations:*"
                 Resource: '*'
 
   AwsOperationsLayer:
@@ -1037,7 +1116,7 @@ Resources:
       CompatibleArchitectures:
         - arm64
       Content:
-        S3Bucket: !Sub techbot-artifacts-${AWS::AccountId}
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
         S3Key: aws-operations-layer.zip
 
   AwsOperationsFunction:
@@ -1049,7 +1128,7 @@ Resources:
       Architectures:
         - arm64
       Code:
-        S3Bucket: !Sub techbot-artifacts-${AWS::AccountId}
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
         S3Key: aws-operations-code.zip
       Role: !GetAtt AwsOperationsFunctionRole.Arn
       Timeout: 300
@@ -1414,7 +1493,7 @@ Resources:
         S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
         S3Key: worker.zip
       Role: !GetAtt WorkerFunctionRole.Arn
-      Timeout: 900
+      Timeout: 400
       MemorySize: 512
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-requests:19

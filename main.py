@@ -75,19 +75,17 @@ Your Available Tools:
 6. **AWS Account Operations** — Query, create, and modify resources in the user's AWS account
    Tools: `aws___call_aws`, `aws___suggest_aws_commands`, `aws___run_script`, `aws___retrieve_skill`
 
-   Use cases: list EC2 instances, view S3 buckets, check CloudWatch alarms, query cost/usage, list Lambda functions, create S3 buckets, start/stop EC2 instances, modify resource tags and configurations.
-
    Rules:
+   - Default region is us-west-2. Always specify --region when calling AWS APIs. If a resource is not found, ask the user to confirm the region. Do NOT automatically iterate through multiple regions.
    - Read operations (Describe*, List*, Get*) can be executed freely
    - Create and modify operations (Create*, Put*, Start*, Stop*, Tag*, Update*) are allowed
    - NEVER execute delete or destructive operations (Delete*, Terminate*, Remove*, Destroy*)
    - If user requests a destructive operation, politely explain that delete operations are not supported for safety reasons
    - Use `aws___suggest_aws_commands` first if unsure about the correct API syntax
-   - Always specify the region parameter when calling AWS APIs
-   - When creating or modifying resources, confirm the action with the user before executing
+   - IMPORTANT: When user asks to create/configure/deploy something, ALWAYS default to providing step-by-step instructions and CLI commands first. Then ask if the user wants you to execute. Do NOT execute operations unless the user explicitly confirms.
    - For complex multi-step operations where you are unsure about best practices, use search_documentation to find a skill, then retrieve_skill to get the step-by-step procedure
-   - For simple operations (listing resources, checking status, adding a tag, querying costs), execute directly
-   - If a tool call fails, do NOT give up. Try an alternative approach or answer based on information already gathered
+   - For read-only operations (listing resources, checking status, querying costs), execute directly without asking
+   - If a tool call fails with a permanent error (resource not found, access denied), inform the user directly. If the error is about parameter format, you may retry but no more than 2 times.
 
 Efficiency Rules:
 - When answering simple questions, reply briefly but keep necessary details
@@ -96,9 +94,8 @@ Efficiency Rules:
 - User doesn't need to code directly, so don't search for unnecessary "additional/detailed information". Efficiency over comprehensiveness.
 - Answer directly - users will follow up if needed
 - Minimize tool calls: if you can answer from context or previous results, do not call tools again
-- IMPORTANT: Limit to 5 tool calls maximum per response. If the task needs more, summarize what you found so far and ask the user if they want you to continue.
-- ALWAYS prefer aws___run_script (write a Python script to do everything in one call) over multiple aws___call_aws calls. For example, to query costs by service, write one Python script that calls Cost Explorer API and formats the result, instead of calling aws___call_aws 10+ times.
-- Never call more than 2 tools for a simple factual question
+- Try to complete within 5 tool calls. For complex operations, up to 10 is acceptable.
+- You may use aws___run_script for batch operations, but if run_script fails on the first attempt, switch to aws___call_aws immediately. Do not retry run_script more than once.
 - When asked about a product/service and you're uncertain if it's an AWS service:
   - First use `TechbotGlobalKnowledge___aws___search_documentation` to verify if it exists in AWS
   - If found, proceed; if not, politely clarify you only assist with AWS questions
@@ -240,6 +237,30 @@ async def invoke(payload):
 
         agent.hooks.add_callback(BeforeModelCallEvent, fix_history_before_model_call)
 
+        # Track unavailable tools — block future calls after first "Unknown tool" failure
+        unavailable_tools = set()
+
+        def check_tool_availability(event: BeforeToolCallEvent):
+            tool_name = event.tool_use.get("name", "")
+            if tool_name in unavailable_tools:
+                logger.warning(f"⚠️ Blocking call to unavailable tool: {tool_name}")
+                event.cancel_tool = f"Tool {tool_name} is currently unavailable. Use other tools to complete the task."
+
+        agent.hooks.add_callback(BeforeToolCallEvent, check_tool_availability)
+
+        # After tool call — detect "Unknown tool" errors and mark as unavailable
+        from strands.hooks import AfterToolCallEvent
+
+        def detect_unavailable_tool(event: AfterToolCallEvent):
+            result = getattr(event, "result", None)
+            if result and "Unknown tool" in str(result):
+                tool_name = getattr(event, "tool_use", {}).get("name", "")
+                if tool_name:
+                    unavailable_tools.add(tool_name)
+                    logger.warning(f"⚠️ Tool marked as unavailable: {tool_name}")
+
+        agent.hooks.add_callback(AfterToolCallEvent, detect_unavailable_tool)
+
         # Limit tool calls — use cancel_tool instead of RuntimeError to prevent memory corruption
         tool_call_count = {"n": 0}
 
@@ -247,12 +268,116 @@ async def invoke(payload):
             tool_call_count["n"] += 1
             if tool_call_count["n"] >= 20:
                 logger.warning(f"⚠️ Tool call limit reached (20)")
-                event.cancel_tool = "工具调用次数超过上限（20次），请用已有信息回答用户。"
+                event.cancel_tool = "Tool call limit reached (20). Answer the user with the information you already have."
 
         agent.hooks.add_callback(BeforeToolCallEvent, check_tool_limit)
 
+        # Block retries to AWS services that already returned AccessDenied
+        denied_aws_services = set()
+
+        def detect_denied_service(event: AfterToolCallEvent):
+            result = str(getattr(event, "result", "") or "")
+            if "AccessDeniedException" not in result and "UnauthorizedAccess" not in result:
+                return
+            import re
+            match = re.search(r"([\w-]+):([\w*]+)", result)
+            if match:
+                service = match.group(1)
+                denied_aws_services.add(service)
+                logger.warning(f"⚠️ AWS service denied: {service}")
+
+        agent.hooks.add_callback(AfterToolCallEvent, detect_denied_service)
+
+        def block_denied_service_retry(event: BeforeToolCallEvent):
+            tool_name = event.tool_use.get("name", "")
+            if tool_name not in ("aws___call_aws", "aws___run_script", "aws___suggest_aws_commands"):
+                return
+            input_str = str(event.tool_use.get("input", {})).lower()
+            for service in denied_aws_services:
+                normalized = service.lower().replace("-", "")
+                if normalized in input_str.replace("-", "").replace("_", ""):
+                    logger.warning(f"⚠️ Blocking retry to denied service: {service}")
+                    event.cancel_tool = (
+                        f"Service {service} was already denied access. Do not retry. "
+                        f"Inform the user that additional IAM permissions are needed and suggest what to add."
+                    )
+                    return
+
+        agent.hooks.add_callback(BeforeToolCallEvent, block_denied_service_retry)
+
+        # Time-based tool limit — after 240s, hint model to stop and answer
+        import time as _time
+        _agent_start_time = _time.time()
+        AGENT_TIME_LIMIT = 240
+
+        def hint_answer_after_timeout(event: AfterToolCallEvent):
+            elapsed = _time.time() - _agent_start_time
+            if elapsed >= AGENT_TIME_LIMIT:
+                logger.warning(f"⚠️ Agent time limit reached ({int(elapsed)}s)")
+                timeout_hint = "\n\n⚠️ Approaching timeout. Answer the user immediately with the information you already have. Do NOT call any more tools. Explain what you have checked, the results so far, and what remains unchecked. Let the user know they can follow up to complete the rest."
+                result = getattr(event, "result", None)
+                if isinstance(result, dict):
+                    # Append hint to the text content inside the dict
+                    for item in result.get("content", []):
+                        if isinstance(item, dict) and "text" in item:
+                            item["text"] += timeout_hint
+                            break
+                    else:
+                        result["content"] = result.get("content", []) + [{"text": timeout_hint}]
+                elif isinstance(result, str):
+                    event.result = result + timeout_hint
+                else:
+                    event.result = str(result or "") + timeout_hint
+
+        agent.hooks.add_callback(AfterToolCallEvent, hint_answer_after_timeout)
+
+        # Feishu progress update — patch card with current tool status every 15s
+        import requests as _requests
+
+        _bot_msg_id = payload.get("bot_message_id")
+        _feishu_token = payload.get("feishu_token")
+        _last_progress_time = {"t": 0}
+        _progress_lines = []
+        _PROGRESS_INTERVAL = 15
+
+        def _patch_feishu_progress():
+            card = json.dumps({
+                "schema": "2.0",
+                "config": {"update_multi": True},
+                "body": {"elements": [{"tag": "markdown", "content": "\n".join(_progress_lines)}]},
+            }, ensure_ascii=False)
+            _requests.patch(
+                f"https://open.feishu.cn/open-apis/im/v1/messages/{_bot_msg_id}",
+                headers={"Authorization": f"Bearer {_feishu_token}"},
+                json={"content": card},
+                timeout=3,
+            )
+
+        def update_feishu_progress(event: AfterToolCallEvent):
+            if not _bot_msg_id or not _feishu_token:
+                return
+            now = _time.time()
+            if now - _last_progress_time["t"] < _PROGRESS_INTERVAL:
+                return
+            _last_progress_time["t"] = now
+
+            tool_name = event.tool_use.get("name", "").split("___")[-1]
+            elapsed = int(now - _agent_start_time)
+            dots = "." * (len(_progress_lines) + 3)
+            _progress_lines.append(f"🤖 Loading{dots} | {tool_name} ({elapsed}s)")
+
+            try:
+                _patch_feishu_progress()
+            except Exception:
+                pass
+
+        agent.hooks.add_callback(AfterToolCallEvent, update_feishu_progress)
+
         healthy_status.value = "HealthyBusy"
         logger.info(f"🚀 Agent job starts | actor={actor_id} session={session_id}")
+
+        import asyncio
+        AGENT_TIMEOUT_SECONDS = 300
 
         final_text = ""
         try:
@@ -276,20 +401,36 @@ async def invoke(payload):
                             ok_images += 1
                     except Exception as e:
                         logger.warning(f"⚠️ image[{idx}] decode failed: {e}")
-                result = await agent.invoke_async(full_prompt if ok_images > 0 else user_text)
+                result = await asyncio.wait_for(
+                    agent.invoke_async(full_prompt if ok_images > 0 else user_text),
+                    timeout=AGENT_TIMEOUT_SECONDS,
+                )
             else:
                 logger.info("📝 plain text request")
-                result = await agent.invoke_async(user_text)
+                result = await asyncio.wait_for(
+                    agent.invoke_async(user_text),
+                    timeout=AGENT_TIMEOUT_SECONDS,
+                )
 
             msg = getattr(result, "message", None)
             if isinstance(msg, dict):
                 final_text = extract_text_from_agent_message(msg)
 
+        except asyncio.TimeoutError:
+            logger.warning(f"⚠️ Agent timed out after {AGENT_TIMEOUT_SECONDS}s")
+            if re.search(r'[\u4e00-\u9fff]', user_text):
+                final_text = "⚠️ 处理超时，问题可能比较复杂。请尝试简化问题或拆分为多个小问题。"
+            else:
+                final_text = "⚠️ Request timed out. The question may be too complex. Please try simplifying or breaking it into smaller questions."
         except Exception as e:
             logger.exception("Agent invoke failed")
             final_text = f"发生错误：{str(e)}"
 
-        # Token usage logging
+        # Token usage logging + append to response
+        MODEL_PRICING = {
+            "minimax.minimax-m2.5": (0.0003, 0.0012),
+            "zai.glm-5": (0.001, 0.0032),
+        }
         try:
             metrics = getattr(agent, "event_loop_metrics", None)
             if metrics and hasattr(metrics, "accumulated_usage"):
@@ -298,6 +439,15 @@ async def invoke(payload):
                 output_t = usage.get("outputTokens", 0) if isinstance(usage, dict) else getattr(usage, "outputTokens", 0)
                 total_t = usage.get("totalTokens", 0) if isinstance(usage, dict) else getattr(usage, "totalTokens", 0)
                 logger.info(f"📊 Token usage | input={input_t} output={output_t} total={total_t}")
+
+                # Append cost info to response (match user language)
+                if final_text and input_t > 0:
+                    pricing = MODEL_PRICING.get(model_id, (0.001, 0.005))
+                    cost = input_t / 1000 * pricing[0] + output_t / 1000 * pricing[1]
+                    if re.search(r'[\u4e00-\u9fff]', user_text):
+                        final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens | 预估成本 ${cost:.4f}"
+                    else:
+                        final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens | est. cost ${cost:.4f}"
             else:
                 logger.info("📊 Token usage | metrics not available")
         except Exception as e:

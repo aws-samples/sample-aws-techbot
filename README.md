@@ -5,8 +5,6 @@
 [![Powered by AgentCore](https://img.shields.io/badge/Powered%20by-Amazon%20Bedrock%20AgentCore-blue.svg)](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/)
 [![Built with Strands](https://img.shields.io/badge/Built%20with-Strands%20Agents-green.svg)](https://github.com/strands-agents/sdk-python)
 
-[English](README_EN.md) | 简体中文
-
 基于 [Strands Agents SDK](https://github.com/strands-agents/sdk-python) 和 [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/) 构建的 AI AWS 技术助手。
 
 通过 AgentCore Gateway 统一管理工具接入，Agent 启动时自动从 Gateway 发现所有可用工具。
@@ -18,6 +16,7 @@
 - **成本估算** — 实时查询 AWS 全球和中国区域的服务定价，辅助架构选型和成本优化决策
 - **故障排查与运维支持** — 快速检索 AWS 服务的故障排查指南、配额限制、错误码说明和运维 SOP，缩短问题定位和恢复时间
 - **Kiro 知识查询** — 查询 Kiro 的功能、配置、Specs、Hooks、Steering 和 MCP 等相关文档
+- **AWS 账号操作** — 查询、创建和修改用户 AWS 账号中的资源（EC2、S3、Lambda、CloudWatch、Cost Explorer 等），支持只读查询直接执行、写操作需用户确认
 
 ## 部署
 
@@ -40,7 +39,13 @@
 
 点击按钮，填写参数后部署。堆栈会创建：
 - **AgentCore Gateway** — 统一 MCP 工具入口 + Cognito 认证
-- **Gateway Targets** — 5 个 Lambda（Global Knowledge、China Knowledge、Pricing、Customer Stories、Kiro Knowledge）
+- **Gateway Targets** — 6 个 Lambda：
+  - Global Knowledge — AWS 全球文档、博客和最佳实践搜索
+  - China Knowledge — AWS 中国区域文档和服务可用性查询
+  - Pricing — AWS 服务定价查询（全球和中国区）
+  - Customer Stories — AWS 客户案例搜索
+  - Kiro Knowledge — Kiro IDE 文档查询
+  - AWS Operations — AWS 账号资源操作（通过 AWS Toolkit MCP Server）
 - **AgentCore Runtime** — 运行 TechBot 容器
 - **AgentCore Memory**（可选）— 多轮对话记忆
 - **API Gateway** — `/chat` POST 端点，用于飞书 webhook
@@ -94,16 +99,11 @@
 ## 成本估算
 > **💡 几乎所有费用均为按需计费（Pay-as-you-go），不使用不产生任何费用，无预付、无最低消费。**
 
-基于实际测试（文档查询、定价查询、中国区服务查询、客户案例搜索）。以下按 **300 问题/月（约 10 次/天）** 估算。
+基于实际测试（文档查询、定价查询、账号操作、中国区服务查询、客户案例搜索）。
 
 **模型调用费用**
 
-> 服务定价查询因需多步调用工具，单次费用会高于文档/案例查询。以下为各类查询的平均估算。
-
-| 模型 | 每次调用（平均） | 月费用 (300 次) |
-|------|---------|---------------|
-| MiniMax M2.5 | ~$0.012 | ~$3.7 |
-| GLM-5 | ~$0.041 | ~$12.3 |
+每次对话结束后，回复末尾会显示本次的 token 消耗和预估成本。多轮对话时，由于历史消息会被带入上下文，后续轮次的 input token 会逐步增加，单次费用会随对话轮数上升。
 
 **AgentCore 基础设施费用**
 
@@ -115,13 +115,6 @@
 | Bedrock Agentcore Gateway | 平均每问题 ~5 次 API 调用 | < $0.01 |
 | Bedrock Agentcore Memory（可选） | 多轮对话记忆 | < $0.5 |
 | Lambda / API Gateway | | 免费额度内 |
-
-**月度总费用**
-
-| 模型 | 模型调用 | 基础设施 | 合计 |
-|------|---------|---------|------|
-| MiniMax M2.5 | ~$3.7 | < $4 | **< $8** |
-| GLM-5 | ~$12.3 | < $4 | **< $17** |
 
 > **几乎所有服务均按需计费，不提问时不产生费用。** 实际费用因问题复杂度（工具调用次数、响应时间）和 Memory 开关而异。
 

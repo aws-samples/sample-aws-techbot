@@ -251,7 +251,7 @@ def lambda_handler(event, context):
             token=token,
             message_id=user_msg_id,
             uuid=event_id,
-            markdown="正在生成中 🤖",
+            markdown="🤖 Generating...",
         )
     except Exception as e:
         print(f"❌ Feishu reply failed: {e}")
@@ -280,6 +280,7 @@ def lambda_handler(event, context):
         "prompt": text,
         "event_id": event_id,
         "bot_message_id": bot_msg_id,
+        "feishu_token": token,
         "encoded_images": encoded_images,
     }
     print("Agent Payload:", json.dumps(agent_payload, ensure_ascii=False))
