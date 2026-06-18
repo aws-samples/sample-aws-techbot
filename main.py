@@ -361,7 +361,35 @@ async def invoke(payload):
                 return
             _last_progress_time["t"] = now
 
-            tool_name = event.tool_use.get("name", "").split("___")[-1]
+            raw_tool_name = event.tool_use.get("name", "").split("___")[-1]
+            _tool_display_map = {
+                # Global Knowledge
+                "search_documentation": "searching docs",
+                "read_documentation": "reading docs",
+                "recommend": "finding related docs",
+                # China Knowledge
+                "get_China_available_services": "checking China region availability",
+                "read_China_documentation": "reading China docs",
+                # Pricing
+                "get_pricing_service_codes": "looking up pricing service codes",
+                "get_pricing_service_attributes": "looking up pricing attributes",
+                "get_pricing_attribute_values": "looking up pricing values",
+                "get_pricing": "querying pricing",
+                "get_price_list_urls": "getting price list",
+                "generate_cost_report": "generating cost report",
+                # Customer Stories
+                "search_stories": "searching customer stories",
+                "read_story": "reading customer story",
+                # Kiro
+                "kiro_search": "searching Kiro docs",
+                "kiro_read": "reading Kiro docs",
+                # Operations
+                "call_aws": "calling Amazon Web Services API",
+                "suggest_aws_commands": "looking up Amazon Web Services API syntax",
+                "run_script": "running script",
+                "retrieve_skill": "retrieving best practice",
+            }
+            tool_name = _tool_display_map.get(raw_tool_name, raw_tool_name)
             elapsed = int(now - _agent_start_time)
             dots = "." * (len(_progress_lines) + 3)
             _progress_lines.append(f"🤖 Loading{dots} | {tool_name} ({elapsed}s)")
