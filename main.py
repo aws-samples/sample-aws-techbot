@@ -361,7 +361,8 @@ async def invoke(payload):
                 return
             _last_progress_time["t"] = now
 
-            raw_tool_name = event.tool_use.get("name", "").split("___")[-1]
+            full_tool_name = event.tool_use.get("name", "")
+            raw_tool_name = full_tool_name.split("___")[-1]
             _tool_display_map = {
                 # Global Knowledge
                 "search_documentation": "searching docs",
