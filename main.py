@@ -9,7 +9,7 @@ import logging
 
 from dotenv import load_dotenv
 from strands import Agent
-from strands.models import BedrockModel
+from model_provider import get_model
 from strands.handlers.callback_handler import PrintingCallbackHandler
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
@@ -39,10 +39,6 @@ def create_streamable_http_transport():
 
 app = BedrockAgentCoreApp()
 
-model_id = os.getenv("MODEL_ID")
-bedrock_model = BedrockModel(
-    model_id=model_id,
-)
 
 MAIN_SYSTEM_PROMPT = """
 Your Background:
@@ -219,10 +215,12 @@ async def invoke(payload):
                 region_name=region,
             )
 
+        current_model, model_id = get_model(region)
+
         agent = Agent(
             system_prompt=MAIN_SYSTEM_PROMPT,
             session_manager=session_manager,
-            model=bedrock_model,
+            model=current_model,
             tools=tools,
             record_direct_tool_call=False,
             callback_handler=PrintingCallbackHandler(),
@@ -471,12 +469,18 @@ async def invoke(payload):
 
                 # Append cost info to response (match user language)
                 if final_text and input_t > 0:
-                    pricing = MODEL_PRICING.get(model_id, (0.001, 0.005))
-                    cost = input_t / 1000 * pricing[0] + output_t / 1000 * pricing[1]
-                    if re.search(r'[\u4e00-\u9fff]', user_text):
-                        final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens | 预估成本 ${cost:.4f}"
+                    pricing = MODEL_PRICING.get(model_id)
+                    if pricing:
+                        cost = input_t / 1000 * pricing[0] + output_t / 1000 * pricing[1]
+                        if re.search(r'[\u4e00-\u9fff]', user_text):
+                            final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens | 预估成本 ${cost:.4f}"
+                        else:
+                            final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens | est. cost ${cost:.4f}"
                     else:
-                        final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens | est. cost ${cost:.4f}"
+                        if re.search(r'[\u4e00-\u9fff]', user_text):
+                            final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens（非 Bedrock 模型，费用请查看您的 API 平台账单）"
+                        else:
+                            final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens (non-Bedrock model, check your API provider for costs)"
             else:
                 logger.info("📊 Token usage | metrics not available")
         except Exception as e:

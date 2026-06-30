@@ -13,7 +13,7 @@ COPY pyproject.toml .
 RUN uv pip install --system --no-cache -r pyproject.toml
 
 # 复制应用代码
-COPY main.py gateway_cognito.py ./
+COPY main.py gateway_cognito.py model_provider.py ./
 
 EXPOSE 8080
 

@@ -13,7 +13,12 @@ Metadata:
           default: Basic Configuration
         Parameters:
           - ProjectName
+      - Label:
+          default: Model Configuration
+        Parameters:
           - ModelId
+          - ModelApiKey
+          - ModelBaseUrl
       - Label:
           default: Memory Configuration
         Parameters:
@@ -29,7 +34,11 @@ Metadata:
       ProjectName:
         default: Project Name
       ModelId:
-        default: Amazon Bedrock Model ID
+        default: Model ID
+      ModelApiKey:
+        default: Model API Key (optional)
+      ModelBaseUrl:
+        default: Model API Base URL (optional)
       EnableMemory:
         default: Enable AgentCore Memory?
       MemoryExpiryDays:
@@ -52,12 +61,25 @@ Parameters:
   ModelId:
     Type: String
     Default: zai.glm-5
-    AllowedValues:
-      - zai.glm-5
-      - minimax.minimax-m2.5
     Description: >
-      Select an Amazon Bedrock model.
-      GLM-5 (Zhipu AI) | MiniMax M2.5 (MiniMax)
+      Model ID. For Bedrock: zai.glm-5 or minimax.minimax-m2.5.
+      For API key mode: use the model ID from your provider (e.g., glm-4-plus, deepseek-chat).
+
+  ModelApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: >
+      (Optional) Third-party model API key. If provided, the bot will use this API key
+      instead of Amazon Bedrock. Leave empty to use Bedrock.
+
+  ModelBaseUrl:
+    Type: String
+    Default: ''
+    Description: >
+      (Optional) API base URL for the model provider. Required when ModelApiKey is provided.
+      Examples: https://open.bigmodel.cn/api/paas/v4/ (Zhipu AI),
+      https://api.deepseek.com/v1/ (Deepseek), https://api.siliconflow.cn/v1/ (SiliconFlow)
 
   EnableMemory:
     Type: String
@@ -110,6 +132,7 @@ Rules:
 
 Conditions:
   CreateMemory: !Equals [!Ref EnableMemory, 'true']
+  UseApiKey: !Not [!Equals [!Ref ModelApiKey, '']]
 
 Resources:
 
@@ -994,7 +1017,8 @@ Resources:
                   - "firehose:*"
                   - "elasticache:*"
                   - "es:*"
-                  - "secretsmanager:*"
+                  - "secretsmanager:List*"
+                  - "secretsmanager:Describe*"
                   - "ssm:*"
                   - "acm:*"
                   - "ecr:*"
@@ -1275,6 +1299,13 @@ Resources:
                 Action:
                   - cognito-idp:DescribeUserPoolClient
                 Resource: !GetAtt GatewayCognitoUserPool.Arn
+              - !If
+                - UseApiKey
+                - Effect: Allow
+                  Action:
+                    - secretsmanager:GetSecretValue
+                  Resource: !Ref ModelApiKeySecret
+                - !Ref AWS::NoValue
 
   AgentCoreRuntime:
     Type: AWS::BedrockAgentCore::Runtime
@@ -1291,6 +1322,18 @@ Resources:
       EnvironmentVariables:
         AWS_REGION: !Ref AWS::Region
         MODEL_ID: !Ref ModelId
+        MODEL_PROVIDER: !If
+          - UseApiKey
+          - 'openai-compatible'
+          - 'bedrock'
+        MODEL_API_KEY_SECRET_ARN: !If
+          - UseApiKey
+          - !Ref ModelApiKeySecret
+          - ''
+        MODEL_BASE_URL: !If
+          - UseApiKey
+          - !Ref ModelBaseUrl
+          - ''
         MEMORY_ID: !If
           - CreateMemory
           - !GetAtt AgentCoreMemory.MemoryId
@@ -1315,6 +1358,17 @@ Resources:
           "APP_SECRET": "${AppSecret}",
           "VERIFICATION_TOKEN": "${FeishuVerificationToken}"
         }
+
+  # =========================
+  # Secrets Manager (Model API key, conditional)
+  # =========================
+  ModelApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: UseApiKey
+    Properties:
+      Name: !Sub ${ProjectName}-model-api-key
+      Description: Third-party model API key
+      SecretString: !Ref ModelApiKey
 
   # =========================
   # API Gateway (Feishu webhook)
@@ -1490,7 +1544,7 @@ Resources:
       Runtime: python3.12
       Handler: index.lambda_handler
       Code:
-        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Bucket: !Sub techbot-artifacts-${AWS::AccountId}
         S3Key: worker.zip
       Role: !GetAtt WorkerFunctionRole.Arn
       Timeout: 400
