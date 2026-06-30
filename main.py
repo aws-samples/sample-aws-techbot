@@ -473,14 +473,14 @@ async def invoke(payload):
                     if pricing:
                         cost = input_t / 1000 * pricing[0] + output_t / 1000 * pricing[1]
                         if re.search(r'[\u4e00-\u9fff]', user_text):
-                            final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens | 预估成本 ${cost:.4f}"
+                            final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens | 模型: {model_id} | 预估成本 ${cost:.4f}"
                         else:
-                            final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens | est. cost ${cost:.4f}"
+                            final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens | model: {model_id} | est. cost ${cost:.4f}"
                     else:
                         if re.search(r'[\u4e00-\u9fff]', user_text):
-                            final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens（非 Bedrock 模型，费用请查看您的 API 平台账单）"
+                            final_text += f"\n\n---\n📊 本次消耗：输入 {input_t:,} tokens | 输出 {output_t:,} tokens | 模型: {model_id}（费用请查看 API 平台账单）"
                         else:
-                            final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens (non-Bedrock model, check your API provider for costs)"
+                            final_text += f"\n\n---\n📊 Usage: input {input_t:,} tokens | output {output_t:,} tokens | model: {model_id} (check your API provider for costs)"
             else:
                 logger.info("📊 Token usage | metrics not available")
         except Exception as e:

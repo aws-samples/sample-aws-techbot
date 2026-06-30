@@ -29,19 +29,20 @@ def _get_model_config(region: str):
     base_url = os.getenv("MODEL_BASE_URL")
 
     api_key = os.getenv("MODEL_API_KEY")
-    if not api_key and model_provider != "bedrock":
-        secret_arn = os.getenv("MODEL_API_KEY_SECRET_ARN")
-        if secret_arn:
-            import boto3
-            import json
-            sm = boto3.client("secretsmanager", region_name=region)
-            secret_value = sm.get_secret_value(SecretId=secret_arn)["SecretString"]
-            try:
-                secret_data = json.loads(secret_value)
-                api_key = secret_data.get("api_key", secret_value)
-                model_id = secret_data.get("model_id", model_id)
-                base_url = secret_data.get("base_url", base_url)
-            except (json.JSONDecodeError, AttributeError):
+    secret_arn = os.getenv("MODEL_API_KEY_SECRET_ARN")
+    if secret_arn:
+        import boto3
+        import json
+        sm = boto3.client("secretsmanager", region_name=region)
+        secret_value = sm.get_secret_value(SecretId=secret_arn)["SecretString"]
+        try:
+            secret_data = json.loads(secret_value)
+            api_key = secret_data.get("api_key", api_key)
+            model_id = secret_data.get("model_id", model_id)
+            base_url = secret_data.get("base_url", base_url)
+            model_provider = secret_data.get("provider", model_provider)
+        except (json.JSONDecodeError, AttributeError):
+            if not api_key:
                 api_key = secret_value
 
     return model_provider, model_id, api_key, base_url
