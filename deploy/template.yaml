@@ -102,44 +102,36 @@ Parameters:
 
   AppId:
     Type: String
-    MinLength: 1
-    Description: Feishu App ID for bot integration
+    Default: ''
+    Description: >
+      (Optional) Feishu App ID. Provide the three Feishu fields to enable the
+      Feishu frontend. Leave empty to disable Feishu (e.g. WeCom-only deployment).
 
   AppSecret:
     Type: String
-    MinLength: 1
-    Description: Feishu App Secret
+    Default: ''
+    NoEcho: true
+    Description: (Optional) Feishu App Secret.
 
   FeishuVerificationToken:
     Type: String
-    MinLength: 1
+    Default: ''
     Description: >
-      Feishu Verification Token for webhook request validation.
+      (Optional) Feishu Verification Token for webhook request validation.
       Found in Feishu Open Platform → Events & Callbacks → Encryption Strategy.
 
-  # ---- WeCom (Enterprise WeChat) integration, optional ----
-  WeComCorpId:
-    Type: String
-    Default: ''
-    Description: >
-      (Optional) WeCom Corp ID. Provide all four WeCom fields to enable the
-      WeCom frontend. Leave empty to disable WeCom.
-
-  WeComAgentSecret:
-    Type: String
-    Default: ''
-    NoEcho: true
-    Description: (Optional) WeCom self-built app Secret.
-
+  # ---- WeCom (Enterprise WeChat) smart-robot integration, optional ----
   WeComToken:
     Type: String
     Default: ''
-    Description: (Optional) WeCom callback Token (set in the app's API receive config).
+    Description: >
+      (Optional) WeCom smart-robot callback Token. Provide both WeCom fields to
+      enable the WeCom frontend. Leave empty to disable WeCom.
 
   WeComEncodingAesKey:
     Type: String
     Default: ''
-    Description: (Optional) WeCom 43-char EncodingAESKey.
+    Description: (Optional) WeCom smart-robot 43-char EncodingAESKey.
 
 Mappings:
   ArtifactBucket:
@@ -154,10 +146,22 @@ Rules:
           - !Ref AWS::Region
         AssertDescription: This stack can only be deployed in us-west-2
 
+  # At least one frontend (Feishu or WeCom) must be enabled — otherwise the
+  # deployment has no entry point to reach the agent.
+  AtLeastOneFrontend:
+    Assertions:
+      - Assert: !Or
+          - !Not [!Equals [!Ref AppId, '']]
+          - !Not [!Equals [!Ref WeComToken, '']]
+        AssertDescription: >
+          At least one frontend must be enabled. Provide Feishu credentials (AppId)
+          and/or WeCom credentials (WeComToken).
+
 Conditions:
   CreateMemory: !Equals [!Ref EnableMemory, 'true']
   UseApiKey: !Not [!Equals [!Ref ModelApiKey, '']]
-  EnableWeCom: !Not [!Equals [!Ref WeComCorpId, '']]
+  EnableWeCom: !Not [!Equals [!Ref WeComToken, '']]
+  EnableFeishu: !Not [!Equals [!Ref AppId, '']]
 
 Resources:
 
@@ -1374,6 +1378,7 @@ Resources:
   # =========================
   FeishuSecret:
     Type: AWS::SecretsManager::Secret
+    Condition: EnableFeishu
     Properties:
       Name: !Sub ${ProjectName}-feishu-credentials
       Description: Feishu bot credentials (App ID, App Secret, Verification Token)
@@ -1406,8 +1411,6 @@ Resources:
       Description: WeCom self-built app credentials
       SecretString: !Sub |
         {
-          "CORP_ID": "${WeComCorpId}",
-          "SECRET": "${WeComAgentSecret}",
           "TOKEN": "${WeComToken}",
           "ENCODING_AES_KEY": "${WeComEncodingAesKey}"
         }
@@ -1423,6 +1426,7 @@ Resources:
 
   ChatResource:
     Type: AWS::ApiGateway::Resource
+    Condition: EnableFeishu
     Properties:
       RestApiId: !Ref TechBotApi
       ParentId: !GetAtt TechBotApi.RootResourceId
@@ -1430,6 +1434,7 @@ Resources:
 
   ChatMethod:
     Type: AWS::ApiGateway::Method
+    Condition: EnableFeishu
     Properties:
       RestApiId: !Ref TechBotApi
       ResourceId: !Ref ChatResource
@@ -1475,13 +1480,19 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WeComHandlerFunction.Arn}/invocations
 
-  # Deployment logical ID is versioned (V2) so updates re-snapshot the API,
-  # capturing the WeCom routes when they are enabled.
+  # Deployment logical ID is versioned (V2) so updates re-snapshot the API.
+  # The Description references whichever Methods are enabled (via !If short-circuit),
+  # which makes CloudFormation create those Methods before this Deployment — replacing
+  # a static "DependsOn: ChatMethod" that would break in a WeCom-only deployment.
   ApiDeploymentV2:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: ChatMethod
     Properties:
       RestApiId: !Ref TechBotApi
+      Description: !Sub
+        - "routes feishu=${F} wecom_get=${WG} wecom_post=${WP}"
+        - F: !If [EnableFeishu, !Ref ChatMethod, "none"]
+          WG: !If [EnableWeCom, !Ref WeComGetMethod, "none"]
+          WP: !If [EnableWeCom, !Ref WeComPostMethod, "none"]
 
   ApiStage:
     Type: AWS::ApiGateway::Stage
@@ -1495,6 +1506,7 @@ Resources:
   # =========================
   HandlerFunctionRole:
     Type: AWS::IAM::Role
+    Condition: EnableFeishu
     Properties:
       RoleName: !Sub ${ProjectName}-handler-role
       AssumeRolePolicyDocument:
@@ -1520,6 +1532,7 @@ Resources:
 
   HandlerFunction:
     Type: AWS::Lambda::Function
+    Condition: EnableFeishu
     Properties:
       FunctionName: !Sub ${ProjectName}-handler
       Runtime: python3.12
@@ -1580,6 +1593,7 @@ Resources:
 
   HandlerApiPermission:
     Type: AWS::Lambda::Permission
+    Condition: EnableFeishu
     Properties:
       FunctionName: !Ref HandlerFunction
       Action: lambda:InvokeFunction
@@ -1591,6 +1605,7 @@ Resources:
   # =========================
   WorkerFunctionRole:
     Type: AWS::IAM::Role
+    Condition: EnableFeishu
     Properties:
       RoleName: !Sub ${ProjectName}-worker-role
       AssumeRolePolicyDocument:
@@ -1618,6 +1633,7 @@ Resources:
 
   WorkerFunction:
     Type: AWS::Lambda::Function
+    Condition: EnableFeishu
     Properties:
       FunctionName: !Sub ${ProjectName}-worker
       Runtime: python3.12
@@ -1764,6 +1780,7 @@ Outputs:
       - GatewayId: !GetAtt AgentCoreGateway.GatewayIdentifier
 
   FeishuEventSubscriptionUrl:
+    Condition: EnableFeishu
     Description: Feishu bot event subscription URL (paste into Feishu Open Platform → Event Subscription → Request URL)
     Value: !Sub https://${TechBotApi}.execute-api.${AWS::Region}.amazonaws.com/prod/chat
 
@@ -1773,7 +1790,9 @@ Outputs:
     Value: !Sub https://${TechBotApi}.execute-api.${AWS::Region}.amazonaws.com/prod/wework
 
   HandlerFunctionName:
+    Condition: EnableFeishu
     Value: !Ref HandlerFunction
 
   WorkerFunctionName:
+    Condition: EnableFeishu
     Value: !Ref WorkerFunction
