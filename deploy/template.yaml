@@ -117,6 +117,30 @@ Parameters:
       Feishu Verification Token for webhook request validation.
       Found in Feishu Open Platform → Events & Callbacks → Encryption Strategy.
 
+  # ---- WeCom (Enterprise WeChat) integration, optional ----
+  WeComCorpId:
+    Type: String
+    Default: ''
+    Description: >
+      (Optional) WeCom Corp ID. Provide all four WeCom fields to enable the
+      WeCom frontend. Leave empty to disable WeCom.
+
+  WeComAgentSecret:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: (Optional) WeCom self-built app Secret.
+
+  WeComToken:
+    Type: String
+    Default: ''
+    Description: (Optional) WeCom callback Token (set in the app's API receive config).
+
+  WeComEncodingAesKey:
+    Type: String
+    Default: ''
+    Description: (Optional) WeCom 43-char EncodingAESKey.
+
 Mappings:
   ArtifactBucket:
     us-west-2:
@@ -133,6 +157,7 @@ Rules:
 Conditions:
   CreateMemory: !Equals [!Ref EnableMemory, 'true']
   UseApiKey: !Not [!Equals [!Ref ModelApiKey, '']]
+  EnableWeCom: !Not [!Equals [!Ref WeComCorpId, '']]
 
 Resources:
 
@@ -1371,6 +1396,23 @@ Resources:
       SecretString: !Ref ModelApiKey
 
   # =========================
+  # Secrets Manager (WeCom credentials, conditional)
+  # =========================
+  WeComSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: EnableWeCom
+    Properties:
+      Name: !Sub ${ProjectName}-wecom-credentials
+      Description: WeCom self-built app credentials
+      SecretString: !Sub |
+        {
+          "CORP_ID": "${WeComCorpId}",
+          "SECRET": "${WeComAgentSecret}",
+          "TOKEN": "${WeComToken}",
+          "ENCODING_AES_KEY": "${WeComEncodingAesKey}"
+        }
+
+  # =========================
   # API Gateway (Feishu webhook)
   # =========================
   TechBotApi:
@@ -1398,7 +1440,44 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HandlerFunction.Arn}/invocations
 
-  ApiDeployment:
+  # ---- WeCom route /wework (GET for URL verification, POST for messages) ----
+  WeComResource:
+    Type: AWS::ApiGateway::Resource
+    Condition: EnableWeCom
+    Properties:
+      RestApiId: !Ref TechBotApi
+      ParentId: !GetAtt TechBotApi.RootResourceId
+      PathPart: wework
+
+  WeComGetMethod:
+    Type: AWS::ApiGateway::Method
+    Condition: EnableWeCom
+    Properties:
+      RestApiId: !Ref TechBotApi
+      ResourceId: !Ref WeComResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WeComHandlerFunction.Arn}/invocations
+
+  WeComPostMethod:
+    Type: AWS::ApiGateway::Method
+    Condition: EnableWeCom
+    Properties:
+      RestApiId: !Ref TechBotApi
+      ResourceId: !Ref WeComResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WeComHandlerFunction.Arn}/invocations
+
+  # Deployment logical ID is versioned (V2) so updates re-snapshot the API,
+  # capturing the WeCom routes when they are enabled.
+  ApiDeploymentV2:
     Type: AWS::ApiGateway::Deployment
     DependsOn: ChatMethod
     Properties:
@@ -1408,7 +1487,7 @@ Resources:
     Type: AWS::ApiGateway::Stage
     Properties:
       RestApiId: !Ref TechBotApi
-      DeploymentId: !Ref ApiDeployment
+      DeploymentId: !Ref ApiDeploymentV2
       StageName: prod
 
   # =========================
@@ -1544,7 +1623,7 @@ Resources:
       Runtime: python3.12
       Handler: index.lambda_handler
       Code:
-        S3Bucket: !Sub techbot-artifacts-${AWS::AccountId}
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
         S3Key: worker.zip
       Role: !GetAtt WorkerFunctionRole.Arn
       Timeout: 400
@@ -1554,6 +1633,113 @@ Resources:
       Environment:
         Variables:
           SECRET_ARN: !Ref FeishuSecret
+          AGENT_RUNTIME_ARN: !GetAtt AgentCoreRuntime.AgentRuntimeArn
+          AGENTCORE_REGION: !Ref AWS::Region
+
+  # =========================
+  # WeCom Handler + Worker (conditional)
+  # =========================
+  WeComHandlerFunctionRole:
+    Type: AWS::IAM::Role
+    Condition: EnableWeCom
+    Properties:
+      RoleName: !Sub ${ProjectName}-wecom-handler-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: InvokeWeComWorker
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt WeComWorkerFunction.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref WeComSecret
+
+  WeComHandlerFunction:
+    Type: AWS::Lambda::Function
+    Condition: EnableWeCom
+    Properties:
+      FunctionName: !Sub ${ProjectName}-wecom-handler
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Code:
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Key: wecom_handler.zip
+      Role: !GetAtt WeComHandlerFunctionRole.Arn
+      Timeout: 10
+      MemorySize: 256
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-cryptography:25
+      Environment:
+        Variables:
+          WEWORK_WORKER_FUNCTION_NAME: !Ref WeComWorkerFunction
+          WEWORK_SECRET_ARN: !Ref WeComSecret
+
+  WeComHandlerApiPermission:
+    Type: AWS::Lambda::Permission
+    Condition: EnableWeCom
+    Properties:
+      FunctionName: !Ref WeComHandlerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${TechBotApi}/*/*/wework
+
+  WeComWorkerFunctionRole:
+    Type: AWS::IAM::Role
+    Condition: EnableWeCom
+    Properties:
+      RoleName: !Sub ${ProjectName}-wecom-worker-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: InvokeAgentCore
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: bedrock-agentcore:InvokeAgentRuntime
+                Resource:
+                  - !GetAtt AgentCoreRuntime.AgentRuntimeArn
+                  - !Sub ${AgentCoreRuntime.AgentRuntimeArn}/runtime-endpoint/*
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref WeComSecret
+
+  WeComWorkerFunction:
+    Type: AWS::Lambda::Function
+    Condition: EnableWeCom
+    Properties:
+      FunctionName: !Sub ${ProjectName}-wecom-worker
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Code:
+        S3Bucket: !FindInMap [ArtifactBucket, !Ref 'AWS::Region', Name]
+        S3Key: wecom_worker.zip
+      Role: !GetAtt WeComWorkerFunctionRole.Arn
+      Timeout: 400
+      MemorySize: 512
+      Layers:
+        - !Sub arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-p312-requests:19
+      Environment:
+        Variables:
+          WEWORK_SECRET_ARN: !Ref WeComSecret
           AGENT_RUNTIME_ARN: !GetAtt AgentCoreRuntime.AgentRuntimeArn
           AGENTCORE_REGION: !Ref AWS::Region
 
@@ -1580,6 +1766,11 @@ Outputs:
   FeishuEventSubscriptionUrl:
     Description: Feishu bot event subscription URL (paste into Feishu Open Platform → Event Subscription → Request URL)
     Value: !Sub https://${TechBotApi}.execute-api.${AWS::Region}.amazonaws.com/prod/chat
+
+  WeComCallbackUrl:
+    Condition: EnableWeCom
+    Description: WeCom callback URL (paste into WeCom Admin → your app → API receive config → URL)
+    Value: !Sub https://${TechBotApi}.execute-api.${AWS::Region}.amazonaws.com/prod/wework
 
   HandlerFunctionName:
     Value: !Ref HandlerFunction
