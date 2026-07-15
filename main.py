@@ -69,7 +69,7 @@ Your Available Tools:
    Tools: `TechbotKiroKnowledge___kiro_search`, `TechbotKiroKnowledge___kiro_read`
 
 6. **AWS Account Operations** — Query, create, and modify resources in the user's AWS account
-   Tools: `aws___call_aws`, `aws___suggest_aws_commands`, `aws___run_script`, `aws___retrieve_skill`
+   Tools: `aws___run_script`, `aws___suggest_aws_commands`, `aws___retrieve_skill`
 
    Rules:
    - Default region is us-west-2. Always specify --region when calling AWS APIs. If a resource is not found, ask the user to confirm the region. Do NOT automatically iterate through multiple regions.
@@ -91,7 +91,7 @@ Efficiency Rules:
 - Answer directly - users will follow up if needed
 - Minimize tool calls: if you can answer from context or previous results, do not call tools again
 - Try to complete within 5 tool calls. For complex operations, up to 10 is acceptable.
-- You may use aws___run_script for batch operations, but if run_script fails on the first attempt, switch to aws___call_aws immediately. Do not retry run_script more than once.
+- Use aws___run_script for AWS operations. If it fails, retry at most 2 times with corrected parameters; if it still fails, inform the user instead of retrying further.
 - When asked about a product/service and you're uncertain if it's an AWS service:
   - First use `TechbotGlobalKnowledge___aws___search_documentation` to verify if it exists in AWS
   - If found, proceed; if not, politely clarify you only assist with AWS questions
@@ -313,7 +313,7 @@ def _register_hooks(agent, payload):
 
     def block_denied_service_retry(event: BeforeToolCallEvent):
         tool_name = event.tool_use.get("name", "")
-        if tool_name not in ("aws___call_aws", "aws___run_script", "aws___suggest_aws_commands"):
+        if tool_name not in ("aws___run_script", "aws___suggest_aws_commands"):
             return
         input_str = str(event.tool_use.get("input", {})).lower()
         for service in denied_aws_services:
@@ -405,9 +405,8 @@ def _register_hooks(agent, payload):
             "kiro_search": "searching Kiro docs",
             "kiro_read": "reading Kiro docs",
             # Operations
-            "call_aws": "calling Amazon Web Services API",
             "suggest_aws_commands": "looking up Amazon Web Services API syntax",
-            "run_script": "running script",
+            "run_script": "running Amazon Web Services operation",
             "retrieve_skill": "retrieving best practice",
         }
         tool_name = _tool_display_map.get(raw_tool_name, raw_tool_name)

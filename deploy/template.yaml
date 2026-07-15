@@ -16,6 +16,7 @@ Metadata:
       - Label:
           default: Model Configuration
         Parameters:
+          - ModelProvider
           - ModelId
           - ModelApiKey
           - ModelBaseUrl
@@ -38,12 +39,14 @@ Metadata:
     ParameterLabels:
       ProjectName:
         default: Project Name
+      ModelProvider:
+        default: Model Provider
       ModelId:
         default: Model ID
       ModelApiKey:
-        default: Model API Key (optional)
+        default: Model API Key
       ModelBaseUrl:
-        default: Model API Base URL (optional)
+        default: Model API Base URL
       EnableMemory:
         default: Enable AgentCore Memory?
       MemoryExpiryDays:
@@ -67,28 +70,45 @@ Parameters:
     ConstraintDescription: Lowercase alphanumeric only, starting with a letter
     Description: Project name (lowercase), used as prefix for all resources
 
+  ModelProvider:
+    Type: String
+    Default: bedrock
+    AllowedValues:
+      - bedrock
+      - openai-compatible
+      - anthropic
+      - gemini
+      - ollama
+    Description: >
+      Model provider. bedrock = Amazon Bedrock (no api_key needed);
+      openai-compatible = any OpenAI-compatible API (Zhipu, Deepseek, SiliconFlow, OpenAI...);
+      anthropic / gemini = direct vendor API; ollama = self-hosted Ollama server.
+      All model settings are stored in Secrets Manager after deployment — edit them
+      there to switch models without redeploying.
+
   ModelId:
     Type: String
     Default: zai.glm-5
     Description: >
-      Model ID. For Bedrock: zai.glm-5 or minimax.minimax-m2.5.
-      For API key mode: use the model ID from your provider (e.g., glm-4-plus, deepseek-chat).
+      Model ID. For bedrock: zai.glm-5 or minimax.minimax-m2.5.
+      For other providers: the model name from your provider
+      (e.g., glm-4-plus for Zhipu, deepseek-chat for Deepseek, claude-sonnet-4-20250514 for Anthropic).
 
   ModelApiKey:
     Type: String
     Default: ''
     NoEcho: true
     Description: >
-      (Optional) Third-party model API key. If provided, the bot will use this API key
-      instead of Amazon Bedrock. Leave empty to use Bedrock.
+      Model API key. Required for openai-compatible / anthropic / gemini.
+      Leave empty for bedrock / ollama.
 
   ModelBaseUrl:
     Type: String
     Default: ''
     Description: >
-      (Optional) API base URL for the model provider. Required when ModelApiKey is provided.
-      Examples: https://open.bigmodel.cn/api/paas/v4/ (Zhipu AI),
-      https://api.deepseek.com/v1/ (Deepseek), https://api.siliconflow.cn/v1/ (SiliconFlow)
+      API base URL. Required for openai-compatible (e.g., https://open.bigmodel.cn/api/paas/v4/
+      for Zhipu, https://api.deepseek.com/v1/ for Deepseek) and ollama (your server address,
+      e.g., http://your-server:11434). Leave empty for bedrock / anthropic / gemini.
 
   EnableMemory:
     Type: String
@@ -168,7 +188,6 @@ Rules:
 
 Conditions:
   CreateMemory: !Equals [!Ref EnableMemory, 'true']
-  UseApiKey: !Not [!Equals [!Ref ModelApiKey, '']]
   EnableWeCom: !Not [!Equals [!Ref WeComToken, '']]
   EnableFeishu: !Not [!Equals [!Ref AppId, '']]
 
@@ -1337,13 +1356,10 @@ Resources:
                 Action:
                   - cognito-idp:DescribeUserPoolClient
                 Resource: !GetAtt GatewayCognitoUserPool.Arn
-              - !If
-                - UseApiKey
-                - Effect: Allow
-                  Action:
-                    - secretsmanager:GetSecretValue
-                  Resource: !Ref ModelApiKeySecret
-                - !Ref AWS::NoValue
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref ModelApiKeySecret
 
   AgentCoreRuntime:
     Type: AWS::BedrockAgentCore::Runtime
@@ -1360,18 +1376,9 @@ Resources:
       EnvironmentVariables:
         AWS_REGION: !Ref AWS::Region
         MODEL_ID: !Ref ModelId
-        MODEL_PROVIDER: !If
-          - UseApiKey
-          - 'openai-compatible'
-          - 'bedrock'
-        MODEL_API_KEY_SECRET_ARN: !If
-          - UseApiKey
-          - !Ref ModelApiKeySecret
-          - ''
-        MODEL_BASE_URL: !If
-          - UseApiKey
-          - !Ref ModelBaseUrl
-          - ''
+        MODEL_PROVIDER: !Ref ModelProvider
+        MODEL_API_KEY_SECRET_ARN: !Ref ModelApiKeySecret
+        MODEL_BASE_URL: !Ref ModelBaseUrl
         MEMORY_ID: !If
           - CreateMemory
           - !GetAtt AgentCoreMemory.MemoryId
@@ -1403,11 +1410,24 @@ Resources:
   # =========================
   ModelApiKeySecret:
     Type: AWS::SecretsManager::Secret
-    Condition: UseApiKey
     Properties:
-      Name: !Sub ${ProjectName}-model-api-key
-      Description: Third-party model API key
-      SecretString: !Ref ModelApiKey
+      Name: !Sub ${ProjectName}-model-config
+      Description: >-
+        Model configuration (edit fields here to switch model without redeploying,
+        takes effect within ~5 min; note a stack update overwrites manual edits).
+        Examples:
+        Bedrock: {"provider":"bedrock","model_id":"zai.glm-5"} (api_key/base_url not needed).
+        Zhipu AI: {"provider":"openai-compatible","api_key":"your-key","model_id":"glm-4-plus","base_url":"https://open.bigmodel.cn/api/paas/v4/"}.
+        Deepseek: {"provider":"openai-compatible","api_key":"sk-xxx","model_id":"deepseek-chat","base_url":"https://api.deepseek.com/v1/"}.
+        Anthropic: {"provider":"anthropic","api_key":"sk-ant-xxx","model_id":"claude-sonnet-4-20250514"}.
+        Ollama: {"provider":"ollama","model_id":"qwen2.5:7b","base_url":"http://your-server:11434"}.
+      SecretString: !Sub |
+        {
+          "provider": "${ModelProvider}",
+          "api_key": "${ModelApiKey}",
+          "model_id": "${ModelId}",
+          "base_url": "${ModelBaseUrl}"
+        }
 
   # =========================
   # Secrets Manager (WeCom credentials, conditional)
