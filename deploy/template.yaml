@@ -25,11 +25,16 @@ Metadata:
           - EnableMemory
           - MemoryExpiryDays
       - Label:
-          default: Feishu Integration
+          default: Feishu Integration (optional)
         Parameters:
           - AppId
           - AppSecret
           - FeishuVerificationToken
+      - Label:
+          default: WeCom Integration (optional)
+        Parameters:
+          - WeComToken
+          - WeComEncodingAesKey
     ParameterLabels:
       ProjectName:
         default: Project Name
@@ -49,6 +54,10 @@ Metadata:
         default: Feishu App Secret
       FeishuVerificationToken:
         default: Feishu Verification Token
+      WeComToken:
+        default: WeCom Token
+      WeComEncodingAesKey:
+        default: WeCom EncodingAESKey
 
 Parameters:
   ProjectName:

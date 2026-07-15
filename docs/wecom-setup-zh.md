@@ -56,31 +56,25 @@
 
 4. 保留当前页面，不要关闭，继续下面**第四步**
 
-## 第四步：部署 CloudFormation（填入企微参数）
+---
 
-> 智能机器人通过一次性的 `response_url` 回复消息，因此**只需要 Token 和 EncodingAESKey 两个值**
+## ⏸️ 部署 CloudFormation
 
-在部署 TechBot 的 CloudFormation 时，填入以下 2 个企微参数（其余参数与飞书部署相同）：
+智能机器人即将配置就绪，现在请返回 [README — 一键部署 CloudFormation](../README.md#一键部署-cloudformation)，在参数中填入第三步获取的 **WeCom Token** 和 **WeCom EncodingAESKey** 完成堆栈部署。
 
-| 参数 | 填写内容 |
-|------|---------|
-| WeComToken | 第三步的 Token |
-| WeComEncodingAesKey | 第三步的 EncodingAESKey |
+> - 智能机器人通过一次性 `response_url` 回复消息，因此企微**只需要 Token 和 EncodingAESKey 两个值**（不需要 CorpID/Secret）。
+> - 填了 WeCom Token 就会自动创建企微资源（Handler/Worker Lambda、`/wework` 回调路由、Secrets Manager）。若只做企业微信部署，飞书参数留空即可。
 
-> 只要填写了 WeComToken，堆栈就会自动创建企微所需的资源（Handler Lambda、Worker Lambda、回调路由、Secrets Manager）。不填则不启用企微功能，不影响飞书。
-
-部署完成后，从 CloudFormation **Outputs** 中复制 **WeComCallbackUrl**，形如：
-
-```
-https://xxxxxx.execute-api.us-west-2.amazonaws.com/prod/wework
-```
+部署完成后，从 CloudFormation **Outputs** 中复制 **WeComCallbackUrl**，然后继续下面的步骤。
 
 <img src="images/zh/wecom-callback-url.png" width="700" alt="回调URL Output">
 
-## 第五步：回填回调 URL 并验证
+---
+
+## 第四步：回填回调 URL 并验证
 
 1. 回到智能机器人的 **API 配置** 页面
-2. 把第四步的 **WeComCallbackUrl** 填入 **URL** 字段
+2. 把第三步的 **WeComCallbackUrl** 填入 **URL** 字段
 3. 确认 Token 和 EncodingAESKey 与部署时填写的一致
 4. 点击 **保存**
 
@@ -90,14 +84,14 @@ https://xxxxxx.execute-api.us-west-2.amazonaws.com/prod/wework
 
 > **如果保存报错「服务器没有正确响应」**，请见文末常见问题。
 
-## 第六步：将机器人添加到群聊
+## 第五步：将机器人添加到群聊
 
 1. 打开或创建一个企业微信群聊
 2. 群设置 → **添加群成员** → **智能机器人** → 选择你创建的 TechBot
 
 <img src="images/zh/wecom-add-to-group.jpeg" width="400" alt="添加到群聊">
 
-## 第七步：测试
+## 第六步：测试
 
 在群里 **@TechBot** 并提问，例如：
 

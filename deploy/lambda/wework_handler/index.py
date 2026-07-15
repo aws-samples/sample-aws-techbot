@@ -103,7 +103,7 @@ def lambda_handler(event, context):
     if not text or not response_url:
         return _text_response(200, "")
 
-    # Async-invoke worker; return empty 200 immediately. Worker replies via response_url.
+    # Async-invoke worker; worker replies with the final answer via response_url.
     worker_payload = {
         "channel": "wework",
         "response_url": response_url,
@@ -117,4 +117,30 @@ def lambda_handler(event, context):
         InvocationType="Event",
         Payload=json.dumps(worker_payload, ensure_ascii=False).encode("utf-8"),
     )
-    return _text_response(200, "")
+
+    # Passive reply in this HTTP response: an immediate "Generating..." notice so the
+    # user gets instant feedback. Must be a stream-type message (text is not allowed
+    # for message callbacks); finish=true ends the stream right away so WeCom will
+    # not send stream-refresh callbacks (no state to maintain).
+    import hashlib as _hashlib
+    stream_id = _hashlib.md5((msg.get("msgid") or "ack").encode("utf-8")).hexdigest()
+    ack = {
+        "msgtype": "stream",
+        "stream": {
+            "id": stream_id,
+            "finish": True,
+            "content": "🤖 Generating...",
+        },
+    }
+    try:
+        encrypted_reply = crypto.encrypt_json_reply(json.dumps(ack, ensure_ascii=False), nonce)
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": encrypted_reply,
+        }
+    except Exception as e:
+        # If ack encryption fails for any reason, fall back to empty 200 —
+        # the final answer via response_url is unaffected.
+        print(f"⚠️ ack reply encryption failed: {e}")
+        return _text_response(200, "")

@@ -121,6 +121,23 @@ class WeComCrypt:
             raise WeComCryptError("POST message signature mismatch")
         return self._decrypt(encrypt)
 
+    def encrypt_json_reply(self, plain_msg: str, nonce: str) -> str:
+        """智能机器人被动回复：加密明文 JSON -> 组装 {"encrypt","msgsignature","timestamp","nonce"}。
+
+        nonce 必须复用回调 URL query 里的 nonce（官方要求）。
+        """
+        import json as _json
+        import time as _time
+        encrypt = self._encrypt(plain_msg)
+        timestamp = int(_time.time())
+        sig = _sha1_signature(self.token, str(timestamp), nonce, encrypt)
+        return _json.dumps({
+            "encrypt": encrypt,
+            "msgsignature": sig,
+            "timestamp": timestamp,
+            "nonce": nonce,
+        }, ensure_ascii=False)
+
 
 def parse_text_message(xml_str: str) -> dict:
     """解析解密后的明文 XML，提取常用字段。"""
